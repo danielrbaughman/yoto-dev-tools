@@ -8,6 +8,7 @@ __pycache__/
 # Tooling caches
 .ruff_cache/
 .pytest_cache/
+.beads.gate.lock
 
 # Build artifacts
 dist/
