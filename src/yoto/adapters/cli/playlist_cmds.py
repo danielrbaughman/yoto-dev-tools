@@ -156,8 +156,7 @@ def playlist_create(
 
 @playlist_app.command(
     "update",
-    help="Update a playlist: the JSON is deep-merged onto the current card, "
-    "so partial patches never clobber fields you did not mention." + _CARD_JSON_HELP,
+    help="Update a playlist." + _CARD_JSON_HELP,
 )
 @verbose()
 @handle_errors
