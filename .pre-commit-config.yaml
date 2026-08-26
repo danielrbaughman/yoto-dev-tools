@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: checks
+        name: checks.sh (uv sync, ty, ruff)
+        entry: ./checks.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
