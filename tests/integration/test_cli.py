@@ -183,7 +183,7 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
             }
         }
     )
-    result = runner.invoke(app, ["playlist", "upload", str(audio), "--json"])
+    result = runner.invoke(app, ["playlist", "upload", "audio", str(audio), "--json"])
     assert result.exit_code == 0
     assert "Authorization" not in put.calls[0].request.headers
     (entry,) = json.loads(result.stdout)
@@ -193,8 +193,9 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
     assert "Uploading" in result.stderr
 
 
-def test_covers_lives_under_playlist():
-    assert runner.invoke(app, ["playlist", "covers", "--help"]).exit_code == 0
+def test_upload_group_has_audio_and_cover():
+    assert runner.invoke(app, ["playlist", "upload", "audio", "--help"]).exit_code == 0
+    assert runner.invoke(app, ["playlist", "upload", "cover", "--help"]).exit_code == 0
 
 
 def test_create_from_dir_nests_under_create():
@@ -207,10 +208,8 @@ def test_create_from_dir_nests_under_create():
     assert "from-dir" in result.stderr
 
 
-def test_bare_upload_is_a_hidden_alias():
-    assert runner.invoke(app, ["upload", "--help"]).exit_code == 0
-    help_text = runner.invoke(app, ["--help"]).stdout
-    assert "\n│ upload" not in help_text  # hidden from the root listing
+def test_bare_upload_is_gone():
+    assert runner.invoke(app, ["upload", "--help"]).exit_code == 2
 
 
 @respx.mock(assert_all_called=True)

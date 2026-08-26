@@ -49,9 +49,8 @@ yoto
 ├── auth      login | logout | whoami | token [--refresh]
 ├── playlist  list | get | create --file card.json|- | update | delete
 │             create from-dir DIR [--title] [--cover IMG] [--icon MEDIA_ID]
-│             upload FILE...             audio → yoto:# trackUrl (dedup + transcode poll;
-│                                        also aliased as bare `yoto upload`)
-│             covers upload FILE [--type]
+│             upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
+│             upload cover FILE [--type]
 ├── icons     list | search QUERY | upload FILE   [--mine]
 ├── devices   list | config get DEVICE | config set DEVICE KEY=VALUE...
 ├── player    DEVICE  play|pause|resume|stop|volume|status|watch|ambient|sleep   (MQTT)

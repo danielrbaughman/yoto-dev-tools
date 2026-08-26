@@ -1,4 +1,4 @@
-"""`yoto playlist` (incl. covers) and the hidden `yoto upload` alias."""
+"""`yoto playlist` commands (incl. `create from-dir` and `upload audio|cover`)."""
 
 import json
 import sys
@@ -17,7 +17,6 @@ from yoto.application import uploads as uploads_uc
 from yoto.domain.errors import InputError
 
 playlist_app = typer.Typer(help="MYO playlists")
-covers_app = typer.Typer(help="Cover images for MYO playlists.")
 
 FileOpt = Annotated[
     str,
@@ -73,10 +72,11 @@ def playlist_get(
 
 # `create` is a group so creation flows nest under it (`create from-dir`),
 # while plain `create --file card.json` still works via the callback.
-# Registered before covers_app so it lists first among the sub-groups.
 create_app = typer.Typer()
 playlist_app.add_typer(create_app, name="create", invoke_without_command=True)
-playlist_app.add_typer(covers_app, name="covers")
+
+upload_app = typer.Typer(help="Upload media for playlists.")
+playlist_app.add_typer(upload_app, name="upload")
 
 
 @create_app.callback(invoke_without_command=True)
@@ -175,10 +175,10 @@ def playlist_create_from_dir(
     emit(card, json_, presenters.show_card)
 
 
-@playlist_app.command("upload")
+@upload_app.command("audio")
 @verbose()
 @handle_errors
-def upload(
+def upload_audio(
     files: Annotated[
         list[Path], typer.Argument(help="Audio files (mp3, m4a, ogg, ...).")
     ],
@@ -201,10 +201,10 @@ def upload(
         print_json(results)
 
 
-@covers_app.command("upload")
+@upload_app.command("cover")
 @verbose()
 @handle_errors
-def covers_upload(
+def upload_cover(
     file: Annotated[Path, typer.Argument(help="Image file.")],
     type_: Annotated[
         str,
