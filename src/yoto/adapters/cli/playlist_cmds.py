@@ -23,8 +23,7 @@ FileOpt = Annotated[
     typer.Option(
         "--file",
         "-f",
-        help="Path to a JSON card (or '-' to read stdin). Accepts a bare card "
-        'object or {"card": {...}}; schema below.',
+        help="Path to a JSON card (or '-' to read stdin).",
     ),
 ]
 
@@ -127,8 +126,7 @@ playlist_app.add_typer(upload_app, name="upload")
 
 @create_app.callback(
     invoke_without_command=True,
-    help="Create a playlist from JSON (or via the from-dir subcommand)."
-    + _CARD_JSON_HELP,
+    help="Create a playlist." + _CARD_JSON_HELP,
 )
 @verbose()
 @handle_errors
@@ -139,8 +137,7 @@ def playlist_create(
         typer.Option(
             "--file",
             "-f",
-            help="Path to a JSON card (or '-' to read stdin). Accepts a bare "
-            'card object or {"card": {...}}.',
+            help="Path to a JSON card (or '-' to read stdin).",
         ),
     ] = None,
     json_: JsonOpt = False,
