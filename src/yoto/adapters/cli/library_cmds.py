@@ -1,4 +1,4 @@
-"""`yoto playlist groups` and `yoto family images` commands."""
+"""`yoto playlist group` and `yoto family images` commands."""
 
 from pathlib import Path
 from typing import Annotated
@@ -12,8 +12,8 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import library as library_uc
 
-# groups_app is mounted under `yoto playlist` (see playlist_cmds).
-groups_app = typer.Typer(help="Playlist groups.")
+# group_app is mounted under `yoto playlist` (see playlist_cmds).
+group_app = typer.Typer(help="Playlist groups.")
 
 family_app = typer.Typer(help="Family resources.")
 images_app = typer.Typer(help="Family images (usable as group images).")
@@ -22,28 +22,28 @@ family_app.add_typer(images_app, name="images")
 GroupIdArg = Annotated[str, typer.Argument(help="Group id.")]
 
 
-@groups_app.command("list")
+@group_app.command("list")
 @verbose()
 @handle_errors
-def groups_list(json_: JsonOpt = False) -> None:
+def group_list(json_: JsonOpt = False) -> None:
     """List all groups."""
     groups = library_uc.list_groups(get_services().library)
     emit(groups, json_, presenters.show_groups)
 
 
-@groups_app.command("get")
+@group_app.command("get")
 @verbose()
 @handle_errors
-def groups_get(group_id: GroupIdArg, json_: JsonOpt = False) -> None:
+def group_get(group_id: GroupIdArg, json_: JsonOpt = False) -> None:
     """Show one group."""
     group = library_uc.get_group(get_services().library, group_id)
     emit(group, json_, presenters.show_group)
 
 
-@groups_app.command("create")
+@group_app.command("create")
 @verbose()
 @handle_errors
-def groups_create(
+def group_create(
     name: Annotated[str, typer.Option("--name", help="Group name (max 100 chars).")],
     image: Annotated[
         str,
@@ -66,10 +66,10 @@ def groups_create(
     emit(group, json_, presenters.show_group)
 
 
-@groups_app.command("update")
+@group_app.command("update")
 @verbose()
 @handle_errors
-def groups_update(
+def group_update(
     group_id: GroupIdArg,
     name: Annotated[str | None, typer.Option("--name")] = None,
     image: Annotated[str | None, typer.Option(help="Image id.")] = None,
@@ -93,10 +93,10 @@ def groups_update(
     emit(group, json_, presenters.show_group)
 
 
-@groups_app.command("delete")
+@group_app.command("delete")
 @verbose()
 @handle_errors
-def groups_delete(group_id: GroupIdArg, yes: YesOpt = False) -> None:
+def group_delete(group_id: GroupIdArg, yes: YesOpt = False) -> None:
     """Delete a group."""
     if not yes:
         typer.confirm(f"Delete group {group_id}?", abort=True, err=True)

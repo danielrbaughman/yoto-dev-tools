@@ -52,7 +52,7 @@ yoto
 │             create --file DIR [--title] [--cover IMG] [--icon ID]  one chapter per audio file
 │             upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
 │             upload cover FILE [--type]
-│             groups list|get|create|update|delete   family-library groups
+│             group list|get|create|update|delete    family-library groups
 ├── icon      list public|private|all | search public|private|all QUERY | upload FILE
 ├── player    list | status DEVICE | play DEVICE CARD_ID [--chapter K] [--track K]
 │             pause|resume|stop DEVICE | volume DEVICE [0-100] | watch DEVICE   (MQTT)

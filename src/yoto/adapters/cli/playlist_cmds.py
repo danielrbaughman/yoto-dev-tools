@@ -118,7 +118,7 @@ def playlist_get(
 upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
 
-playlist_app.add_typer(library_cmds.groups_app, name="groups")
+playlist_app.add_typer(library_cmds.group_app, name="group")
 
 
 @playlist_app.command(
