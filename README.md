@@ -5,10 +5,10 @@
 stdout/stderr discipline).
 
 ```console
-$ yoto content list
-$ yoto content create-from-dir ./album --title "Road Trip Mix"
+$ yoto playlists list
+$ yoto playlists create-from-dir ./album --title "Road Trip Mix"
 $ yoto player "Kitchen Player" status
-$ yoto content list --json | jq -r '.[].cardId'
+$ yoto playlists list --json | jq -r '.[].cardId'
 ```
 
 ## Setup
@@ -47,10 +47,10 @@ logged-in machine with `yoto auth token`).
 ```
 yoto
 ├── auth      login | logout | whoami | token [--refresh]
-├── content   list | get | create | update | delete | create-from-dir
+├── playlists list | get | create | update | delete | create-from-dir
 │             upload FILE...             audio → yoto:# trackUrl (dedup + transcode poll;
 │                                        also aliased as bare `yoto upload`)
-├── covers    upload FILE [--type]
+│             covers upload FILE [--type]
 ├── icons     list | search QUERY | upload FILE   [--mine]
 ├── devices   list | config get DEVICE | config set DEVICE KEY=VALUE...
 ├── player    DEVICE  play|pause|resume|stop|volume|status|watch|ambient|sleep   (MQTT)
@@ -59,9 +59,9 @@ yoto
 ```
 
 - `DEVICE` is a device id or a unique device name (case-insensitive).
-- `content update` is **merge semantics**: fetched card + your JSON patch →
+- `playlists update` is **merge semantics**: fetched card + your JSON patch →
   upsert. Unknown/undocumented API fields are preserved losslessly.
-- `content create/update --file -` reads JSON from stdin.
+- `playlists create/update --file -` reads JSON from stdin.
 - Player control needs the `family:devices:control` scope on your client.
 - There is no API to link a playlist to a physical MYO card — that final step
   happens in the Yoto app/player.
@@ -71,8 +71,8 @@ yoto
 - **stdout is data, stderr is everything else** (progress, prompts, logs,
   errors). Piping-safe; Rich disables ANSI when not a TTY and honors
   `NO_COLOR`.
-- `--json` emits **API-native camelCase JSON** — `yoto content get X --json`
-  output is valid `yoto content update X --file -` input.
+- `--json` emits **API-native camelCase JSON** — `yoto playlists get X --json`
+  output is valid `yoto playlists update X --file -` input.
 - `yoto player DEVICE watch --json` streams **NDJSON** (one event per line,
   flushed).
 - Errors in `--json` mode: stderr gets one JSON object

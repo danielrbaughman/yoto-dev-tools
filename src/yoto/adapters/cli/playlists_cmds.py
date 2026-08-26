@@ -1,4 +1,4 @@
-"""`yoto content`, `yoto covers`, and the top-level `yoto upload`."""
+"""`yoto playlists` (incl. covers) and the hidden `yoto upload` alias."""
 
 import json
 import sys
@@ -16,8 +16,9 @@ from yoto.application import content as content_uc
 from yoto.application import uploads as uploads_uc
 from yoto.domain.errors import InputError
 
-content_app = typer.Typer(help="MYO playlists (a.k.a. cards).")
-covers_app = typer.Typer(help="Cover images for playlists.")
+playlists_app = typer.Typer(help="MYO playlists")
+covers_app = typer.Typer(help="Cover images for MYO playlists.")
+playlists_app.add_typer(covers_app, name="covers")
 
 FileOpt = Annotated[
     str,
@@ -46,19 +47,19 @@ def read_json_input(source: str) -> Any:
         raise InputError(f"Invalid JSON from {label}: {exc}") from exc
 
 
-@content_app.command("list")
+@playlists_app.command("list")
 @verbose()
 @handle_errors
-def content_list(json_: JsonOpt = False) -> None:
+def playlists_list(json_: JsonOpt = False) -> None:
     """List your MYO playlists (chapters are omitted here — use `get`)."""
     cards = content_uc.list_cards(get_services().content)
     emit(cards, json_, presenters.show_cards)
 
 
-@content_app.command("get")
+@playlists_app.command("get")
 @verbose()
 @handle_errors
-def content_get(
+def playlists_get(
     card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
     playable: Annotated[
         bool,
@@ -71,19 +72,19 @@ def content_get(
     emit(card, json_, presenters.show_card)
 
 
-@content_app.command("create")
+@playlists_app.command("create")
 @verbose()
 @handle_errors
-def content_create(file: FileOpt, json_: JsonOpt = False) -> None:
+def playlists_create(file: FileOpt, json_: JsonOpt = False) -> None:
     """Create a playlist from a JSON document."""
     card = content_uc.create_card(get_services().content, read_json_input(file))
     emit(card, json_, presenters.show_card)
 
 
-@content_app.command("update")
+@playlists_app.command("update")
 @verbose()
 @handle_errors
-def content_update(
+def playlists_update(
     card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
     file: FileOpt,
     json_: JsonOpt = False,
@@ -96,10 +97,10 @@ def content_update(
     emit(card, json_, presenters.show_card)
 
 
-@content_app.command("delete")
+@playlists_app.command("delete")
 @verbose()
 @handle_errors
-def content_delete(
+def playlists_delete(
     card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
     yes: YesOpt = False,
 ) -> None:
@@ -110,10 +111,10 @@ def content_delete(
     note(f"Deleted {card_id}.")
 
 
-@content_app.command("create-from-dir")
+@playlists_app.command("create-from-dir")
 @verbose()
 @handle_errors
-def content_create_from_dir(
+def playlists_create_from_dir(
     folder: Annotated[
         Path, typer.Argument(help="Directory of audio files (one chapter each).")
     ],
@@ -149,7 +150,7 @@ def content_create_from_dir(
     emit(card, json_, presenters.show_card)
 
 
-@content_app.command("upload")
+@playlists_app.command("upload")
 @verbose()
 @handle_errors
 def upload(

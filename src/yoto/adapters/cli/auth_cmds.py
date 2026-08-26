@@ -12,7 +12,7 @@ from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import auth as auth_app_layer
 from yoto.composition import build_services
 
-auth_app = typer.Typer(help="Log in and inspect credentials.")
+auth_app = typer.Typer(help="Authentication")
 
 
 @auth_app.command()
@@ -33,7 +33,7 @@ def login(
         bool, typer.Option("--no-browser", help="Print the URL instead of opening it.")
     ] = False,
 ) -> None:
-    """Log in via the browser (OAuth authorization code + PKCE)."""
+    """Log in (OAuth via browser)."""
     services = get_services()
     overrides: dict[str, object] = {}
     if port is not None:
@@ -51,7 +51,7 @@ def login(
 @verbose()
 @handle_errors
 def logout() -> None:
-    """Forget the stored tokens."""
+    """Log out (forget the stored tokens)."""
     services = get_services()
     auth_app_layer.logout(services.token_store)
     note("Logged out.")
@@ -75,8 +75,7 @@ def token(
         bool, typer.Option("--refresh", help="Force a refresh first.")
     ] = False,
 ) -> None:
-    """Print a valid access token (for scripting: `curl -H "Authorization:
-    Bearer $(yoto auth token)" ...`)."""
+    """Print a valid access token."""
     services = get_services()
     provider = services.token_provider
     value = provider.on_unauthorized() if refresh else provider.access_token()

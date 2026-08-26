@@ -40,7 +40,7 @@ def test_content_list_json_outputs_api_shape(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/mine").respond(
         json=load_fixture("content_mine.json")
     )
-    result = runner.invoke(app, ["content", "list", "--json"])
+    result = runner.invoke(app, ["playlists", "list", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert [card["cardId"] for card in data] == ["abc12", "def34"]
@@ -52,7 +52,7 @@ def test_content_list_human_table(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/mine").respond(
         json=load_fixture("content_mine.json")
     )
-    result = runner.invoke(app, ["content", "list"])
+    result = runner.invoke(app, ["playlists", "list"])
     assert result.exit_code == 0
     assert "Bedtime Stories" in result.stdout
     assert "2 card(s)" in result.stdout
@@ -63,7 +63,7 @@ def test_content_get_json_round_trips_unknown_fields(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/abc12").respond(
         json={"card": load_fixture("card_full.json")}
     )
-    result = runner.invoke(app, ["content", "get", "abc12", "--json"])
+    result = runner.invoke(app, ["playlists", "get", "abc12", "--json"])
     assert result.exit_code == 0
     card = json.loads(result.stdout)
     assert card["sortkey"] == "zz-unknown-top-level"
@@ -80,7 +80,7 @@ def test_content_update_merges_patch_from_stdin(respx_mock, logged_in):
     )
     result = runner.invoke(
         app,
-        ["content", "update", "abc12", "--file", "-", "--json"],
+        ["playlists", "update", "abc12", "--file", "-", "--json"],
         input='{"title": "Renamed"}',
     )
     assert result.exit_code == 0
@@ -96,7 +96,7 @@ def test_not_found_maps_to_exit_3_with_clean_stdout(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/zzzzz").respond(
         404, json={"error": {"code": "not-found", "message": "Card zzzzz missing"}}
     )
-    result = runner.invoke(app, ["content", "get", "zzzzz"])
+    result = runner.invoke(app, ["playlists", "get", "zzzzz"])
     assert result.exit_code == 3
     assert result.stdout == ""
     assert "error: Card zzzzz missing" in result.stderr
@@ -107,7 +107,7 @@ def test_json_mode_emits_error_object_on_stderr(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/zzzzz").respond(
         404, json={"error": {"code": "not-found", "message": "Card zzzzz missing"}}
     )
-    result = runner.invoke(app, ["content", "get", "zzzzz", "--json"])
+    result = runner.invoke(app, ["playlists", "get", "zzzzz", "--json"])
     assert result.exit_code == 3
     assert result.stdout == ""
     error = json.loads(result.stderr)["error"]
@@ -116,14 +116,14 @@ def test_json_mode_emits_error_object_on_stderr(respx_mock, logged_in):
 
 
 def test_missing_credentials_maps_to_exit_4():
-    result = runner.invoke(app, ["content", "list"])
+    result = runner.invoke(app, ["playlists", "list"])
     assert result.exit_code == 4
     assert "Not logged in" in result.stderr
 
 
 def test_bad_json_input_maps_to_exit_5(logged_in):
     result = runner.invoke(
-        app, ["content", "create", "--file", "-", "--json"], input="{nope"
+        app, ["playlists", "create", "--file", "-", "--json"], input="{nope"
     )
     assert result.exit_code == 5
     assert json.loads(result.stderr)["error"]["exitCode"] == 5
@@ -132,10 +132,10 @@ def test_bad_json_input_maps_to_exit_5(logged_in):
 @respx.mock(assert_all_called=True)
 def test_delete_requires_confirmation_and_yes_skips_it(respx_mock, logged_in):
     route = respx_mock.delete(f"{API}/content/abc12").respond(json={"status": "ok"})
-    aborted = runner.invoke(app, ["content", "delete", "abc12"], input="n\n")
+    aborted = runner.invoke(app, ["playlists", "delete", "abc12"], input="n\n")
     assert aborted.exit_code != 0
     assert not route.called
-    confirmed = runner.invoke(app, ["content", "delete", "abc12", "--yes"])
+    confirmed = runner.invoke(app, ["playlists", "delete", "abc12", "--yes"])
     assert confirmed.exit_code == 0
     assert route.called
     assert "Deleted abc12." in confirmed.stderr
@@ -183,7 +183,7 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
             }
         }
     )
-    result = runner.invoke(app, ["content", "upload", str(audio), "--json"])
+    result = runner.invoke(app, ["playlists", "upload", str(audio), "--json"])
     assert result.exit_code == 0
     assert "Authorization" not in put.calls[0].request.headers
     (entry,) = json.loads(result.stdout)
@@ -191,6 +191,10 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
     assert entry["file"] == str(audio)
     # progress went to stderr, not stdout
     assert "Uploading" in result.stderr
+
+
+def test_covers_lives_under_playlists():
+    assert runner.invoke(app, ["playlists", "covers", "--help"]).exit_code == 0
 
 
 def test_bare_upload_is_a_hidden_alias():
@@ -248,5 +252,5 @@ def test_version():
 
 
 def test_usage_error_is_exit_2():
-    result = runner.invoke(app, ["content", "get"])  # missing CARD_ID
+    result = runner.invoke(app, ["playlists", "get"])  # missing CARD_ID
     assert result.exit_code == 2
