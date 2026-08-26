@@ -27,9 +27,9 @@ app = typer.Typer(
 # list before subcommand groups, which is also why the canonical home of
 # upload is `playlists upload` — the bare `yoto upload` stays as a hidden alias).
 app.add_typer(auth_app, name="auth", rich_help_panel="Auth")
-app.add_typer(playlists_app, name="playlists", rich_help_panel="User Content")
+app.add_typer(playlists_app, name="playlists", rich_help_panel="Content")
 app.command("upload", hidden=True)(playlists_cmds.upload)
-app.add_typer(icons_app, name="icons", rich_help_panel="User Content")
+app.add_typer(icons_app, name="icons", rich_help_panel="Content")
 app.add_typer(devices_app, name="devices", rich_help_panel="Players")
 app.add_typer(player_app, name="player", rich_help_panel="Players")
 app.add_typer(library_app, name="library", rich_help_panel="Family library")
