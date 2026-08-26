@@ -175,7 +175,7 @@ def watch(device: DeviceArg, json_: JsonOpt = False) -> None:
 @player_app.command()
 @verbose()
 @handle_errors
-def ambient(
+def light(
     device: DeviceArg,
     rgb: Annotated[
         list[int] | None,
@@ -229,7 +229,7 @@ def sleep(
     _report_ack(ack, json_, "sleep off" if off else f"sleep {value}s")
 
 
-config_app = typer.Typer(help="Player configuration (REST).")
+config_app = typer.Typer(help="Player configuration.")
 player_app.add_typer(config_app, name="config")
 
 
