@@ -16,9 +16,13 @@ $ yoto content list --json | jq -r '.[].cardId'
 1. Install [uv](https://docs.astral.sh/uv/), then:
 
    ```sh
-   ./setup.sh              # uv sync + pre-commit hook
-   uv run yoto --help      # or: uv tool install . && yoto --help
+   ./setup.sh              # dev env: uv sync + pre-commit hook
+   ./install.sh            # install the `yoto` command (uv tool, ~/.local/bin)
+   yoto --help             # or, without installing: uv run yoto --help
    ```
+
+   Re-run `./install.sh` after pulling changes — it rebuilds from the
+   current sources.
 
 2. Create an app at [dashboard.yoto.dev](https://dashboard.yoto.dev/)
    (**public client** — the CLI uses PKCE, no secret). Register the redirect
