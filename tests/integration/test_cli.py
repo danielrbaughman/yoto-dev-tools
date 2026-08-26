@@ -302,3 +302,19 @@ def test_create_and_update_help_document_the_json_schema():
         text = runner.invoke(app, argv).stdout
         assert '"trackUrl": "yoto:#<sha256>"' in text
         assert '"title": "My Playlist"' in text
+
+
+@respx.mock(assert_all_called=True)
+def test_icon_list_public_and_private_subcommands(respx_mock, logged_in):
+    respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
+        json=load_fixture("icons_public.json")
+    )
+    respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
+        json={"displayIcons": [{"mediaId": "mine-1"}]}
+    )
+    public = runner.invoke(app, ["icon", "list", "public", "--json"])
+    assert public.exit_code == 0
+    assert len(json.loads(public.stdout)) == 3
+    private = runner.invoke(app, ["icon", "list", "private", "--json"])
+    assert private.exit_code == 0
+    assert json.loads(private.stdout)[0]["mediaId"] == "mine-1"

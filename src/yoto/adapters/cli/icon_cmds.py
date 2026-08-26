@@ -20,12 +20,25 @@ MineOpt = Annotated[
 ]
 
 
-@icon_app.command("list")
+list_app = typer.Typer(help="List icons.", no_args_is_help=True)
+icon_app.add_typer(list_app, name="list")
+
+
+@list_app.command("public")
 @verbose()
 @handle_errors
-def icon_list(mine: MineOpt = False, json_: JsonOpt = False) -> None:
-    """List icons (public library by default)."""
-    icons = icons_uc.list_icons(get_services().icons, mine=mine)
+def icon_list_public(json_: JsonOpt = False) -> None:
+    """List Yoto's public icon library (titles + searchable tags)."""
+    icons = icons_uc.list_icons(get_services().icons, mine=False)
+    emit(icons, json_, presenters.show_icons)
+
+
+@list_app.command("private")
+@verbose()
+@handle_errors
+def icon_list_private(json_: JsonOpt = False) -> None:
+    """List the icons you have uploaded."""
+    icons = icons_uc.list_icons(get_services().icons, mine=True)
     emit(icons, json_, presenters.show_icons)
 
 
