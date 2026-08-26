@@ -1,0 +1,24 @@
+{
+  "devices": [
+    {
+      "deviceId": "y2AAAAAAAAAAAAAA",
+      "name": "Kitchen Player",
+      "description": "late.smoke",
+      "online": true,
+      "releaseChannel": "general",
+      "deviceType": "v3",
+      "deviceFamily": "v3",
+      "deviceGroup": ""
+    },
+    {
+      "deviceId": "y2BBBBBBBBBBBBBB",
+      "name": "Mini",
+      "description": "calm.river",
+      "online": false,
+      "releaseChannel": "general",
+      "deviceType": "mini",
+      "deviceFamily": "mini",
+      "deviceGroup": ""
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "grp-1",
+    "name": "Favourites",
+    "familyId": "fam-1",
+    "imageId": "fp-cards",
+    "imageUrl": "https://cdn.yoto.io/library/groups/fp-cards.png",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "lastModifiedAt": "2026-02-01T00:00:00.000Z",
+    "items": [
+      {"contentId": "abc12", "addedAt": "2026-01-02T00:00:00.000Z"},
+      {"contentId": "def34", "addedAt": "2026-01-03T00:00:00.000Z"}
+    ],
+    "cards": [
+      {"cardId": "abc12", "title": "Bedtime Stories", "availability": "free"},
+      {"cardId": "def34", "title": "Road Trip Mix", "availability": "free"}
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "cards": [
+    {
+      "cardId": "abc12",
+      "title": "Bedtime Stories",
+      "updatedAt": "2026-02-01T12:30:00.000Z",
+      "metadata": {"category": "stories", "cover": {"imageL": "https://x/cover1.jpg"}}
+    },
+    {
+      "cardId": "def34",
+      "title": "Road Trip Mix",
+      "updatedAt": "2026-03-11T09:00:00.000Z",
+      "metadata": {"category": "music"}
+    }
+  ]
+}

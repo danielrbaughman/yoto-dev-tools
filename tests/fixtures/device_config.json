@@ -1,0 +1,26 @@
+{
+  "device": {
+    "deviceId": "y2AAAAAAAAAAAAAA",
+    "name": "Kitchen Player",
+    "deviceType": "v3",
+    "deviceFamily": "v3",
+    "deviceGroup": "",
+    "online": true,
+    "mac": "aa:bb:cc:dd:ee:ff",
+    "geoTimezone": "Europe/London",
+    "releaseChannelId": "general",
+    "config": {
+      "locale": "en",
+      "dayTime": "07:30",
+      "nightTime": "19:00",
+      "maxVolumeLimit": "16",
+      "nightMaxVolumeLimit": "8",
+      "ambientColour": "#ff8800",
+      "displayDimTimeout": "30",
+      "hourFormat": "12",
+      "repeatAll": false,
+      "alarms": []
+    },
+    "shortcuts": {"versions": {"v1": {}}}
+  }
+}

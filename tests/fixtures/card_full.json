@@ -1,0 +1,73 @@
+{
+  "cardId": "abc12",
+  "title": "Bedtime Stories",
+  "slug": "bedtime-stories",
+  "createdAt": "2026-01-05T10:00:00.000Z",
+  "updatedAt": "2026-02-01T12:30:00.000Z",
+  "sortkey": "zz-unknown-top-level",
+  "userId": "auth0|user1",
+  "content": {
+    "activity": "yoto_Player",
+    "editSettings": {"autoOverlayLabels": "disabled"},
+    "playbackType": "linear",
+    "config": {
+      "autoadvance": "next",
+      "onlineOnly": false,
+      "resumeTimeout": 2592000,
+      "trackNumberOverlayTimeout": 5,
+      "shuffle": [{"start": 0, "end": 4, "limit": 3, "mystery": true}]
+    },
+    "chapters": [
+      {
+        "key": "01",
+        "title": "The Moon",
+        "overlayLabel": "1",
+        "ambient": null,
+        "defaultTrackDisplay": null,
+        "display": {"icon16x16": "yoto:#iconAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+        "tracks": [
+          {
+            "key": "01",
+            "title": "The Moon",
+            "trackUrl": "yoto:#sha256moonaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "format": "aac",
+            "type": "audio",
+            "duration": 185,
+            "fileSize": 2960000,
+            "channels": "2",
+            "events": {"onEnd": {"cmd": "stop", "params": {}}},
+            "display": {"icon16x16": "yoto:#iconAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+          }
+        ]
+      },
+      {
+        "key": "02",
+        "title": "The Stars",
+        "tracks": [
+          {
+            "key": "01",
+            "title": "The Stars",
+            "trackUrl": "https://example.com/stream.mp3",
+            "format": "mp3",
+            "type": "stream",
+            "duration": 240,
+            "fileSize": 3840000,
+            "channels": 2
+          }
+        ]
+      }
+    ],
+    "version": "1"
+  },
+  "metadata": {
+    "cover": {"imageL": "https://card-content.example/cover.jpg"},
+    "description": "Two calm stories.",
+    "author": "Daniel",
+    "category": "stories",
+    "languages": ["en"],
+    "minAge": 3,
+    "maxAge": 8,
+    "share": true,
+    "media": {"duration": 425, "fileSize": 6800000, "hasStreams": true}
+  }
+}
