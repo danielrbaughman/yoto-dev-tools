@@ -5,10 +5,10 @@
 stdout/stderr discipline).
 
 ```console
-$ yoto playlists list
-$ yoto playlists create-from-dir ./album --title "Road Trip Mix"
+$ yoto playlist list
+$ yoto playlist create-from-dir ./album --title "Road Trip Mix"
 $ yoto player "Kitchen Player" status
-$ yoto playlists list --json | jq -r '.[].cardId'
+$ yoto playlist list --json | jq -r '.[].cardId'
 ```
 
 ## Setup
@@ -47,7 +47,7 @@ logged-in machine with `yoto auth token`).
 ```
 yoto
 ├── auth      login | logout | whoami | token [--refresh]
-├── playlists list | get | create | update | delete | create-from-dir
+├── playlist  list | get | create | update | delete | create-from-dir
 │             upload FILE...             audio → yoto:# trackUrl (dedup + transcode poll;
 │                                        also aliased as bare `yoto upload`)
 │             covers upload FILE [--type]
@@ -59,9 +59,9 @@ yoto
 ```
 
 - `DEVICE` is a device id or a unique device name (case-insensitive).
-- `playlists update` is **merge semantics**: fetched card + your JSON patch →
+- `playlist update` is **merge semantics**: fetched card + your JSON patch →
   upsert. Unknown/undocumented API fields are preserved losslessly.
-- `playlists create/update --file -` reads JSON from stdin.
+- `playlist create/update --file -` reads JSON from stdin.
 - Player control needs the `family:devices:control` scope on your client.
 - There is no API to link a playlist to a physical MYO card — that final step
   happens in the Yoto app/player.
@@ -71,8 +71,8 @@ yoto
 - **stdout is data, stderr is everything else** (progress, prompts, logs,
   errors). Piping-safe; Rich disables ANSI when not a TTY and honors
   `NO_COLOR`.
-- `--json` emits **API-native camelCase JSON** — `yoto playlists get X --json`
-  output is valid `yoto playlists update X --file -` input.
+- `--json` emits **API-native camelCase JSON** — `yoto playlist get X --json`
+  output is valid `yoto playlist update X --file -` input.
 - `yoto player DEVICE watch --json` streams **NDJSON** (one event per line,
   flushed).
 - Errors in `--json` mode: stderr gets one JSON object
