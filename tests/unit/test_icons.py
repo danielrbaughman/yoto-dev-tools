@@ -52,3 +52,14 @@ def test_upload_regular_png_keeps_autoconvert(tmp_path):
 def test_upload_missing_file_is_input_error(tmp_path):
     with pytest.raises(InputError):
         upload_icon(FakeIconGateway(), tmp_path / "nope.png")
+
+
+def test_scope_all_combines_private_then_public():
+    from yoto.application.icons import list_icons
+
+    mine = [Icon.model_validate({"mediaId": "m-mine"})]
+    gateway = FakeIconGateway(public=public_icons(), mine=mine)
+    combined = list_icons(gateway, scope="all")
+    assert combined[0].media_id == "m-mine"  # private first, not buried
+    assert len(combined) == 1 + 3
+    assert {i.title for i in search_icons(gateway, "star", scope="all")} == {"Star"}

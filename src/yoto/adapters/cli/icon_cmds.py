@@ -28,7 +28,7 @@ icon_app.add_typer(search_app, name="search")
 @handle_errors
 def icon_list_public(json_: JsonOpt = False) -> None:
     """List Yoto's public icon library."""
-    icons = icons_uc.list_icons(get_services().icons, mine=False)
+    icons = icons_uc.list_icons(get_services().icons, scope="public")
     emit(icons, json_, presenters.show_icons)
 
 
@@ -37,7 +37,16 @@ def icon_list_public(json_: JsonOpt = False) -> None:
 @handle_errors
 def icon_list_private(json_: JsonOpt = False) -> None:
     """List the icons you have uploaded."""
-    icons = icons_uc.list_icons(get_services().icons, mine=True)
+    icons = icons_uc.list_icons(get_services().icons, scope="private")
+    emit(icons, json_, presenters.show_icons)
+
+
+@list_app.command("all")
+@verbose()
+@handle_errors
+def icon_list_all(json_: JsonOpt = False) -> None:
+    """List your icons and the public library together."""
+    icons = icons_uc.list_icons(get_services().icons, scope="all")
     emit(icons, json_, presenters.show_icons)
 
 
@@ -46,7 +55,7 @@ def icon_list_private(json_: JsonOpt = False) -> None:
 @handle_errors
 def icon_search_public(query: QueryArg, json_: JsonOpt = False) -> None:
     """Search Yoto's public icon library."""
-    icons = icons_uc.search_icons(get_services().icons, query, mine=False)
+    icons = icons_uc.search_icons(get_services().icons, query, scope="public")
     emit(icons, json_, presenters.show_icons)
 
 
@@ -55,7 +64,16 @@ def icon_search_public(query: QueryArg, json_: JsonOpt = False) -> None:
 @handle_errors
 def icon_search_private(query: QueryArg, json_: JsonOpt = False) -> None:
     """Search the icons you have uploaded."""
-    icons = icons_uc.search_icons(get_services().icons, query, mine=True)
+    icons = icons_uc.search_icons(get_services().icons, query, scope="private")
+    emit(icons, json_, presenters.show_icons)
+
+
+@search_app.command("all")
+@verbose()
+@handle_errors
+def icon_search_all(query: QueryArg, json_: JsonOpt = False) -> None:
+    """Search your icons and the public library together."""
+    icons = icons_uc.search_icons(get_services().icons, query, scope="all")
     emit(icons, json_, presenters.show_icons)
 
 
@@ -77,7 +95,7 @@ def icon_upload(
     ] = True,
     json_: JsonOpt = False,
 ) -> None:
-    """Upload a custom icon; reference it as display.icon16x16 = yoto:#<mediaId>."""
+    """Upload a custom icon."""
     icon, used_autoconvert = icons_uc.upload_icon(
         get_services().icons, file, filename=name, autoconvert=autoconvert
     )

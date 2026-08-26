@@ -318,3 +318,18 @@ def test_icon_list_public_and_private_subcommands(respx_mock, logged_in):
     private = runner.invoke(app, ["icon", "list", "private", "--json"])
     assert private.exit_code == 0
     assert json.loads(private.stdout)[0]["mediaId"] == "mine-1"
+
+
+@respx.mock(assert_all_called=True)
+def test_icon_list_all_combines_both(respx_mock, logged_in):
+    respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
+        json=load_fixture("icons_public.json")
+    )
+    respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
+        json={"displayIcons": [{"mediaId": "mine-1"}]}
+    )
+    result = runner.invoke(app, ["icon", "list", "all", "--json"])
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert len(data) == 4
+    assert data[0]["mediaId"] == "mine-1"  # private icons listed first

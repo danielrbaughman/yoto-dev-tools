@@ -1,17 +1,27 @@
 """Icon use cases."""
 
 from pathlib import Path
+from typing import Literal
 
 from yoto.application.ports import IconGateway
 from yoto.domain.errors import InputError
 from yoto.domain.media import Icon
 
-
-def list_icons(gateway: IconGateway, *, mine: bool = False) -> list[Icon]:
-    return gateway.list_mine() if mine else gateway.list_public()
+IconScope = Literal["public", "private", "all"]
 
 
-def search_icons(gateway: IconGateway, query: str, *, mine: bool = False) -> list[Icon]:
+def list_icons(gateway: IconGateway, *, scope: IconScope = "public") -> list[Icon]:
+    if scope == "public":
+        return gateway.list_public()
+    if scope == "private":
+        return gateway.list_mine()
+    # "all": your icons first so they aren't buried under the public library
+    return gateway.list_mine() + gateway.list_public()
+
+
+def search_icons(
+    gateway: IconGateway, query: str, *, scope: IconScope = "public"
+) -> list[Icon]:
     """Case-insensitive substring match over title and public tags."""
     needle = query.lower()
 
@@ -20,7 +30,7 @@ def search_icons(gateway: IconGateway, query: str, *, mine: bool = False) -> lis
             return True
         return any(needle in tag.lower() for tag in icon.public_tags or [])
 
-    return [icon for icon in list_icons(gateway, mine=mine) if matches(icon)]
+    return [icon for icon in list_icons(gateway, scope=scope) if matches(icon)]
 
 
 def is_animated_gif(data: bytes) -> bool:
