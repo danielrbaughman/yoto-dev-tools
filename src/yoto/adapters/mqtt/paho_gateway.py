@@ -139,7 +139,6 @@ class PahoPlayerGateway:
     ) -> CommandAck:
         client = self._require_client()
         _drain(self._responses)
-        resource = topics.command_resource(command)
         topic = topics.command_topic(device_id, command)
         body = json.dumps(payload)
         logger.debug("mqtt -> %s %s", topic, body)
@@ -157,7 +156,7 @@ class PahoPlayerGateway:
             except queue.Empty:
                 continue
             ack = topics.parse_ack(raw)
-            if ack is not None and ack.resource == resource:
+            if ack is not None and topics.ack_matches(ack, command, body):
                 return ack
 
     def request_status(self, device_id: str, *, timeout: float) -> PlayerStatus:

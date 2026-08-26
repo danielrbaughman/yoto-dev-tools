@@ -26,10 +26,23 @@ def response_topic(device_id: str) -> str:
     return f"device/{device_id}/response"
 
 
-def command_resource(command: str) -> str:
-    """The resource name a command is acknowledged under
-    ("volume/set" -> "volume", "card/start" -> "card")."""
-    return command.split("/", 1)[0]
+def ack_matches(ack: CommandAck, command: str, request_body: str) -> bool:
+    """Does a response-topic ack belong to the command we just published?
+
+    Primary signal: the device echoes the request body in ``req_body`` —
+    observed on real v2.23.3 firmware for commands with a payload; empty-object
+    payloads come back as ``""``. Fallback: the ack's resource key, whose
+    naming is inconsistent in practice — observed "set-volume" (volume/set),
+    "card-play" (card/start), "card-stop" (card/stop), and the literal
+    "status/request", while the docs claim bare names like "volume"/"status".
+    """
+    if ack.req_body:  # non-empty echo: exact correlation
+        return ack.req_body == request_body
+    first, _, rest = command.partition("/")
+    candidates = {command, first, command.replace("/", "-")}
+    if rest:
+        candidates.add(f"{rest}-{first}")  # volume/set -> set-volume
+    return ack.resource in candidates
 
 
 def _load(payload: bytes) -> dict[str, Any]:

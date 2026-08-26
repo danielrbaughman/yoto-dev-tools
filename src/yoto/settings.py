@@ -16,10 +16,15 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+# NB: yoto.dev documents the :manage scopes as including :view, but the API
+# enforces the literal :view scope strings on some endpoints (observed live on
+# GET /content/{cardId}: 403 wanting user:content:view/family:library:view),
+# so request them explicitly.
 DEFAULT_SCOPES = (
     "openid profile offline_access"
-    " user:content:manage user:icons:manage family:library:manage"
-    " family:devices:manage family:devices:control"
+    " user:content:view user:content:manage user:icons:manage"
+    " family:library:view family:library:manage"
+    " family:devices:view family:devices:manage family:devices:control"
 )
 
 

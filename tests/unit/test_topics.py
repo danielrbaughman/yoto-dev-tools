@@ -12,10 +12,39 @@ def test_topic_builders_have_no_leading_slash():
     assert topics.response_topic("dev1") == "device/dev1/response"
 
 
-def test_command_resource():
-    assert topics.command_resource("volume/set") == "volume"
-    assert topics.command_resource("card/start") == "card"
-    assert topics.command_resource("reboot") == "reboot"
+def test_ack_matches_via_req_body_echo():
+    # Real v2.23.3 firmware echoes the exact request body.
+    ack = topics.parse_ack(
+        b'{"status":{"set-volume":"OK","req_body":"{\\"volume\\": 4}"}}'
+    )
+    assert ack is not None
+    assert topics.ack_matches(ack, "volume/set", '{"volume": 4}')
+    assert not topics.ack_matches(ack, "volume/set", '{"volume": 9}')
+
+
+def test_ack_matches_falls_back_to_resource_name_variants():
+    from yoto.domain.player import CommandAck
+
+    # docs-style bare resource
+    assert topics.ack_matches(
+        CommandAck(resource="volume", ok=True), "volume/set", "{}"
+    )
+    # observed inverted verb-noun form
+    assert topics.ack_matches(
+        CommandAck(resource="set-volume", ok=True), "volume/set", "{}"
+    )
+    # observed literal command form
+    assert topics.ack_matches(
+        CommandAck(resource="status/request", ok=True), "status/request", "{}"
+    )
+    # observed slash->dash form with EMPTY req_body echo (real card/stop ack)
+    stop_ack = topics.parse_ack(b'{"status":{"card-stop":"OK","req_body":""}}')
+    assert stop_ack is not None
+    assert topics.ack_matches(stop_ack, "card/stop", "{}")
+    # unrelated resource does not match
+    assert not topics.ack_matches(
+        CommandAck(resource="set-volume", ok=True), "card/pause", "{}"
+    )
 
 
 def test_parse_ack_regular_command():

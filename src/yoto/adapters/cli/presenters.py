@@ -108,7 +108,11 @@ def show_devices(devices: list[Device]) -> None:
 
 
 def show_device_details(details: DeviceDetails) -> None:
-    stdout_console.print(f"[bold]{details.name}[/bold] ({details.device_id})")
+    # The live config endpoint omits `name`; fall back to the id alone.
+    if details.name:
+        stdout_console.print(f"[bold]{details.name}[/bold] ({details.device_id})")
+    else:
+        stdout_console.print(f"[bold]{details.device_id}[/bold]")
     table = _table("Key", "Value")
     for key in sorted(details.config):
         table.add_row(key, str(details.config[key]))

@@ -47,12 +47,13 @@ def groups_get(group_id: GroupIdArg, json_: JsonOpt = False) -> None:
 def groups_create(
     name: Annotated[str, typer.Option("--name", help="Group name (max 100 chars).")],
     image: Annotated[
-        str | None,
+        str,
         typer.Option(
-            help="Image id: a pre-made id (e.g. fp-cards) or an "
-            "uploaded family image id."
+            help="Image id: a pre-made id or an uploaded family image id. "
+            "The API rejects creation without one (observed live), hence "
+            "the default."
         ),
-    ] = None,
+    ] = "fp-cards",
     content: Annotated[
         list[str] | None,
         typer.Option("--content", help="Content id to include (repeatable)."),
