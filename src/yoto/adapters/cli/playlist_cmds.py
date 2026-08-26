@@ -121,8 +121,7 @@ playlist_app.add_typer(upload_app, name="upload")
 
 @playlist_app.command(
     "create",
-    help="Create a playlist from a JSON card, or from a directory of audio "
-    "files (one chapter per file, natural sort: 2 before 10)." + _CARD_JSON_HELP,
+    help="Create a playlist." + _CARD_JSON_HELP,
 )
 @verbose()
 @handle_errors
