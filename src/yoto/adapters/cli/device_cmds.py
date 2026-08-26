@@ -11,7 +11,7 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import devices as devices_uc
 
-device_app = typer.Typer(help="Your Yoto players (REST).")
+device_app = typer.Typer(help="Your Yoto players.")
 config_app = typer.Typer(help="Player configuration.")
 device_app.add_typer(config_app, name="config")
 
