@@ -183,7 +183,7 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
             }
         }
     )
-    result = runner.invoke(app, ["upload", str(audio), "--json"])
+    result = runner.invoke(app, ["content", "upload", str(audio), "--json"])
     assert result.exit_code == 0
     assert "Authorization" not in put.calls[0].request.headers
     (entry,) = json.loads(result.stdout)
@@ -191,6 +191,12 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
     assert entry["file"] == str(audio)
     # progress went to stderr, not stdout
     assert "Uploading" in result.stderr
+
+
+def test_bare_upload_is_a_hidden_alias():
+    assert runner.invoke(app, ["upload", "--help"]).exit_code == 0
+    help_text = runner.invoke(app, ["--help"]).stdout
+    assert "\n│ upload" not in help_text  # hidden from the root listing
 
 
 @respx.mock(assert_all_called=True)

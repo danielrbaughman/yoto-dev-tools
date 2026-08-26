@@ -149,6 +149,7 @@ def content_create_from_dir(
     emit(card, json_, presenters.show_card)
 
 
+@content_app.command("upload")
 @verbose()
 @handle_errors
 def upload(

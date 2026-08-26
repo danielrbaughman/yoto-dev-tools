@@ -23,15 +23,18 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 
-app.add_typer(auth_app, name="auth")
-app.add_typer(content_app, name="content")
-app.command("upload")(content_cmds.upload)
-app.add_typer(covers_app, name="covers")
-app.add_typer(icons_app, name="icons")
-app.add_typer(devices_app, name="devices")
-app.add_typer(player_app, name="player")
-app.add_typer(library_app, name="library")
-app.add_typer(family_app, name="family")
+# rich_help_panel controls --help grouping/order (bare commands would always
+# list before subcommand groups, which is also why the canonical home of
+# upload is `content upload` — the bare `yoto upload` stays as a hidden alias).
+app.add_typer(auth_app, name="auth", rich_help_panel="Auth")
+app.add_typer(content_app, name="content", rich_help_panel="Content & media")
+app.command("upload", hidden=True)(content_cmds.upload)
+app.add_typer(covers_app, name="covers", rich_help_panel="Content & media")
+app.add_typer(icons_app, name="icons", rich_help_panel="Content & media")
+app.add_typer(devices_app, name="devices", rich_help_panel="Players")
+app.add_typer(player_app, name="player", rich_help_panel="Players")
+app.add_typer(library_app, name="library", rich_help_panel="Family library")
+app.add_typer(family_app, name="family", rich_help_panel="Family library")
 
 
 def _version_callback(value: bool) -> None:

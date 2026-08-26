@@ -48,7 +48,8 @@ logged-in machine with `yoto auth token`).
 yoto
 ├── auth      login | logout | whoami | token [--refresh]
 ├── content   list | get | create | update | delete | create-from-dir
-├── upload    FILE...                    audio → yoto:# trackUrl (dedup + transcode poll)
+│             upload FILE...             audio → yoto:# trackUrl (dedup + transcode poll;
+│                                        also aliased as bare `yoto upload`)
 ├── covers    upload FILE [--type]
 ├── icons     list | search QUERY | upload FILE   [--mine]
 ├── devices   list | config get DEVICE | config set DEVICE KEY=VALUE...
