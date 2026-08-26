@@ -48,7 +48,7 @@ def _report_ack(ack: CommandAck, json_mode: bool, action: str) -> None:
 @verbose()
 @handle_errors
 def player_list(json_: JsonOpt = False) -> None:
-    """List the family's players."""
+    """List all Yoto players."""
     devices = devices_uc.list_devices(get_services().devices)
     emit(devices, json_, presenters.show_devices)
 
@@ -57,7 +57,7 @@ def player_list(json_: JsonOpt = False) -> None:
 @verbose()
 @handle_errors
 def status(device: DeviceArg, json_: JsonOpt = False) -> None:
-    """Request a live status report (battery, active card, volume, ...)."""
+    """Status of a Yoto player."""
     with connected_player(device) as (gateway, device_id):
         result = player_uc.get_status(gateway, device_id)
     emit(result, json_, presenters.show_status)
@@ -82,7 +82,7 @@ def play(
     ] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """Start playing a card."""
+    """Play a card."""
     request = PlayRequest(
         uri=uri or card_uri(card_id),
         chapter_key=chapter,
@@ -145,7 +145,7 @@ def volume(
     ] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """Set (or read) the volume."""
+    """Get or set the volume."""
     with connected_player(device) as (gateway, device_id):
         if level is None:
             status = player_uc.get_status(gateway, device_id)
@@ -163,7 +163,7 @@ def volume(
 @verbose()
 @handle_errors
 def watch(device: DeviceArg, json_: JsonOpt = False) -> None:
-    """Stream playback events until Ctrl-C (--json emits NDJSON)."""
+    """Stream playback events."""
     with connected_player(device) as (gateway, device_id):
         for event in player_uc.watch_events(gateway, device_id):
             if json_:
