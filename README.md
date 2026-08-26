@@ -7,7 +7,7 @@ stdout/stderr discipline).
 ```console
 $ yoto playlist list
 $ yoto playlist create --file ./album --title "Road Trip Mix"
-$ yoto player "Kitchen Player" status
+$ yoto player status "Kitchen Player"
 $ yoto playlist list --json | jq -r '.[].cardId'
 ```
 
@@ -53,8 +53,10 @@ yoto
 │             upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
 │             upload cover FILE [--type]
 ├── icon      list public|private|all | search public|private|all QUERY | upload FILE
-├── device    list | config get DEVICE | config set DEVICE KEY=VALUE...
-├── player    DEVICE  play|pause|resume|stop|volume|status|watch|ambient|sleep   (MQTT)
+├── player    list | status DEVICE | play DEVICE CARD_ID [--chapter K] [--track K]
+│             pause|resume|stop DEVICE | volume DEVICE [0-100] | watch DEVICE   (MQTT)
+│             ambient DEVICE R G B|--hex|--off | sleep DEVICE SECONDS|--off
+│             config get DEVICE | config set DEVICE KEY=VALUE... [--name]   (REST)
 ├── library   groups  list|get|create|update|delete
 └── family    images  list|upload|get
 ```
@@ -74,7 +76,7 @@ yoto
   `NO_COLOR`.
 - `--json` emits **API-native camelCase JSON** — `yoto playlist get X --json`
   output is valid `yoto playlist update X --file -` input.
-- `yoto player DEVICE watch --json` streams **NDJSON** (one event per line,
+- `yoto player watch DEVICE --json` streams **NDJSON** (one event per line,
   flushed).
 - Errors in `--json` mode: stderr gets one JSON object
   `{"error": {"code", "message", "exitCode"}}`; stdout stays empty.

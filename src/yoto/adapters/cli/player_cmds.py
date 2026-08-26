@@ -1,4 +1,4 @@
-"""`yoto player DEVICE ...` commands (MQTT)."""
+"""`yoto player` commands: list & config via REST, control & status via MQTT."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -17,22 +17,16 @@ from yoto.application.ports import PlayerGateway
 from yoto.domain.errors import InputError
 from yoto.domain.player import CommandAck, PlayRequest, card_uri
 
-player_app = typer.Typer(help="Real-time player control over MQTT.")
+player_app = typer.Typer(help="Yoto players: control, status, configuration.")
 
-
-@player_app.callback()
-def _player_root(
-    ctx: typer.Context,
-    device: Annotated[str, typer.Argument(help="Device id or unique name.")],
-) -> None:
-    ctx.obj = device
+DeviceArg = Annotated[str, typer.Argument(help="Device id or unique name.")]
 
 
 @contextmanager
-def connected_player(ctx: typer.Context) -> Iterator[tuple[PlayerGateway, str]]:
+def connected_player(ref: str) -> Iterator[tuple[PlayerGateway, str]]:
     services = get_services()
-    device = devices_uc.resolve_device(services.devices, str(ctx.obj))
-    device_id = device.device_id or str(ctx.obj)
+    device = devices_uc.resolve_device(services.devices, ref)
+    device_id = device.device_id or ref
     gateway = services.player
     gateway.connect(device_id)
     try:
@@ -50,11 +44,30 @@ def _report_ack(ack: CommandAck, json_mode: bool, action: str) -> None:
         note(f"{action}: player reported FAIL")
 
 
+@player_app.command("list")
+@verbose()
+@handle_errors
+def player_list(json_: JsonOpt = False) -> None:
+    """List the family's players."""
+    devices = devices_uc.list_devices(get_services().devices)
+    emit(devices, json_, presenters.show_devices)
+
+
+@player_app.command()
+@verbose()
+@handle_errors
+def status(device: DeviceArg, json_: JsonOpt = False) -> None:
+    """Request a live status report (battery, active card, volume, ...)."""
+    with connected_player(device) as (gateway, device_id):
+        result = player_uc.get_status(gateway, device_id)
+    emit(result, json_, presenters.show_status)
+
+
 @player_app.command()
 @verbose()
 @handle_errors
 def play(
-    ctx: typer.Context,
+    device: DeviceArg,
     card_id: Annotated[str, typer.Argument(help="Card id to play.")],
     chapter: Annotated[str | None, typer.Option(help="Chapter key.")] = None,
     track: Annotated[str | None, typer.Option(help="Track key.")] = None,
@@ -78,13 +91,13 @@ def play(
         cut_off=cutoff,
         any_button_stop=any_button_stop or None,
     )
-    with connected_player(ctx) as (gateway, device_id):
+    with connected_player(device) as (gateway, device_id):
         ack = player_uc.play(gateway, device_id, request)
     _report_ack(ack, json_, f"play {card_id}")
 
 
-def _simple(ctx: typer.Context, action: str, json_: bool) -> None:
-    with connected_player(ctx) as (gateway, device_id):
+def _simple(device: str, action: str, json_: bool) -> None:
+    with connected_player(device) as (gateway, device_id):
         ack = {
             "pause": player_uc.pause,
             "resume": player_uc.resume,
@@ -96,32 +109,32 @@ def _simple(ctx: typer.Context, action: str, json_: bool) -> None:
 @player_app.command()
 @verbose()
 @handle_errors
-def pause(ctx: typer.Context, json_: JsonOpt = False) -> None:
+def pause(device: DeviceArg, json_: JsonOpt = False) -> None:
     """Pause playback."""
-    _simple(ctx, "pause", json_)
+    _simple(device, "pause", json_)
 
 
 @player_app.command()
 @verbose()
 @handle_errors
-def resume(ctx: typer.Context, json_: JsonOpt = False) -> None:
+def resume(device: DeviceArg, json_: JsonOpt = False) -> None:
     """Resume playback."""
-    _simple(ctx, "resume", json_)
+    _simple(device, "resume", json_)
 
 
 @player_app.command()
 @verbose()
 @handle_errors
-def stop(ctx: typer.Context, json_: JsonOpt = False) -> None:
+def stop(device: DeviceArg, json_: JsonOpt = False) -> None:
     """Stop playback."""
-    _simple(ctx, "stop", json_)
+    _simple(device, "stop", json_)
 
 
 @player_app.command()
 @verbose()
 @handle_errors
 def volume(
-    ctx: typer.Context,
+    device: DeviceArg,
     level: Annotated[
         int | None,
         typer.Argument(
@@ -133,7 +146,7 @@ def volume(
     json_: JsonOpt = False,
 ) -> None:
     """Set (or read) the volume."""
-    with connected_player(ctx) as (gateway, device_id):
+    with connected_player(device) as (gateway, device_id):
         if level is None:
             status = player_uc.get_status(gateway, device_id)
             emit(
@@ -149,19 +162,9 @@ def volume(
 @player_app.command()
 @verbose()
 @handle_errors
-def status(ctx: typer.Context, json_: JsonOpt = False) -> None:
-    """Request a live status report (battery, active card, volume, ...)."""
-    with connected_player(ctx) as (gateway, device_id):
-        result = player_uc.get_status(gateway, device_id)
-    emit(result, json_, presenters.show_status)
-
-
-@player_app.command()
-@verbose()
-@handle_errors
-def watch(ctx: typer.Context, json_: JsonOpt = False) -> None:
+def watch(device: DeviceArg, json_: JsonOpt = False) -> None:
     """Stream playback events until Ctrl-C (--json emits NDJSON)."""
-    with connected_player(ctx) as (gateway, device_id):
+    with connected_player(device) as (gateway, device_id):
         for event in player_uc.watch_events(gateway, device_id):
             if json_:
                 print_json_line(event)
@@ -173,7 +176,7 @@ def watch(ctx: typer.Context, json_: JsonOpt = False) -> None:
 @verbose()
 @handle_errors
 def ambient(
-    ctx: typer.Context,
+    device: DeviceArg,
     rgb: Annotated[
         list[int] | None,
         typer.Argument(metavar="[R G B]", help="Three values 0-255."),
@@ -201,7 +204,7 @@ def ambient(
         if len(rgb) != 3 or not all(0 <= v <= 255 for v in rgb):
             raise InputError("R G B must be three values 0-255.")
         r, g, b = rgb
-    with connected_player(ctx) as (gateway, device_id):
+    with connected_player(device) as (gateway, device_id):
         ack = player_uc.set_ambient(gateway, device_id, r, g, b)
     _report_ack(ack, json_, f"ambient {r},{g},{b}")
 
@@ -210,7 +213,7 @@ def ambient(
 @verbose()
 @handle_errors
 def sleep(
-    ctx: typer.Context,
+    device: DeviceArg,
     seconds: Annotated[
         int | None, typer.Argument(min=0, help="Sleep timer in seconds.")
     ] = None,
@@ -221,6 +224,45 @@ def sleep(
     if off == (seconds is not None):
         raise InputError("Pass either SECONDS or --off.")
     value = 0 if off else int(seconds or 0)
-    with connected_player(ctx) as (gateway, device_id):
+    with connected_player(device) as (gateway, device_id):
         ack = player_uc.set_sleep_timer(gateway, device_id, value)
     _report_ack(ack, json_, "sleep off" if off else f"sleep {value}s")
+
+
+config_app = typer.Typer(help="Player configuration (REST).")
+player_app.add_typer(config_app, name="config")
+
+
+@config_app.command("get")
+@verbose()
+@handle_errors
+def config_get(device: DeviceArg, json_: JsonOpt = False) -> None:
+    """Show a player's configuration."""
+    details = devices_uc.get_device_details(get_services().devices, device)
+    emit(details, json_, presenters.show_device_details)
+
+
+@config_app.command("set")
+@verbose()
+@handle_errors
+def config_set(
+    device: DeviceArg,
+    pairs: Annotated[
+        list[str],
+        typer.Argument(
+            metavar="KEY=VALUE...",
+            help="Config entries, e.g. maxVolumeLimit=12 nightTime=19:00",
+        ),
+    ],
+    name: Annotated[
+        str | None, typer.Option("--name", help="Also rename the player.")
+    ] = None,
+    json_: JsonOpt = False,
+) -> None:
+    """Update config keys (existing keys are preserved: fetch-merge-put)."""
+    updates = devices_uc.parse_config_updates(pairs)
+    details = devices_uc.set_device_config(
+        get_services().devices, device, updates, name=name
+    )
+    note(f"Updated {', '.join(updates)}.")
+    emit(details, json_, presenters.show_device_details)

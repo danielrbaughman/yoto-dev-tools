@@ -245,11 +245,11 @@ def test_bare_upload_is_gone():
 
 
 @respx.mock(assert_all_called=True)
-def test_devices_list(respx_mock, logged_in):
+def test_player_list(respx_mock, logged_in):
     respx_mock.get(f"{API}/device-v2/devices/mine").respond(
         json=load_fixture("devices.json")
     )
-    result = runner.invoke(app, ["device", "list", "--json"])
+    result = runner.invoke(app, ["player", "list", "--json"])
     assert result.exit_code == 0
     devices = json.loads(result.stdout)
     assert devices[0]["deviceId"] == "y2AAAAAAAAAAAAAA"
