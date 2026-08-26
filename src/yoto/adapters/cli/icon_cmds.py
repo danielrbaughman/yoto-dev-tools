@@ -1,4 +1,4 @@
-"""`yoto icons` commands."""
+"""`yoto icon` commands."""
 
 from pathlib import Path
 from typing import Annotated
@@ -12,7 +12,7 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import icons as icons_uc
 
-icons_app = typer.Typer(help="16x16 display icons (public + private).")
+icon_app = typer.Typer(help="16x16 display icons (public + private).")
 
 MineOpt = Annotated[
     bool,
@@ -20,19 +20,19 @@ MineOpt = Annotated[
 ]
 
 
-@icons_app.command("list")
+@icon_app.command("list")
 @verbose()
 @handle_errors
-def icons_list(mine: MineOpt = False, json_: JsonOpt = False) -> None:
+def icon_list(mine: MineOpt = False, json_: JsonOpt = False) -> None:
     """List icons (public library by default)."""
     icons = icons_uc.list_icons(get_services().icons, mine=mine)
     emit(icons, json_, presenters.show_icons)
 
 
-@icons_app.command("search")
+@icon_app.command("search")
 @verbose()
 @handle_errors
-def icons_search(
+def icon_search(
     query: Annotated[str, typer.Argument(help="Matched against title and tags.")],
     mine: MineOpt = False,
     json_: JsonOpt = False,
@@ -42,10 +42,10 @@ def icons_search(
     emit(icons, json_, presenters.show_icons)
 
 
-@icons_app.command("upload")
+@icon_app.command("upload")
 @verbose()
 @handle_errors
-def icons_upload(
+def icon_upload(
     file: Annotated[Path, typer.Argument(help="PNG or GIF; 16x16 unless converting.")],
     name: Annotated[
         str | None, typer.Option("--name", help="Filename to store it under.")

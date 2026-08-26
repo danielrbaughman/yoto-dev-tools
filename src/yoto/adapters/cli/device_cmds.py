@@ -1,4 +1,4 @@
-"""`yoto devices` commands (REST)."""
+"""`yoto device` commands (REST)."""
 
 from typing import Annotated
 
@@ -11,17 +11,17 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import devices as devices_uc
 
-devices_app = typer.Typer(help="Your Yoto players (REST).")
+device_app = typer.Typer(help="Your Yoto players (REST).")
 config_app = typer.Typer(help="Player configuration.")
-devices_app.add_typer(config_app, name="config")
+device_app.add_typer(config_app, name="config")
 
 DeviceArg = Annotated[str, typer.Argument(help="Device id or unique name.")]
 
 
-@devices_app.command("list")
+@device_app.command("list")
 @verbose()
 @handle_errors
-def devices_list(json_: JsonOpt = False) -> None:
+def device_list(json_: JsonOpt = False) -> None:
     """List the family's players."""
     devices = devices_uc.list_devices(get_services().devices)
     emit(devices, json_, presenters.show_devices)

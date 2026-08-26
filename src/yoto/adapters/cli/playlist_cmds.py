@@ -42,7 +42,7 @@ The JSON card schema (only "title" and one chapter/track are required; unknown f
       {
         "key": "01",
         "title": "Chapter One",
-        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto icons`
+        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto icon`
         "tracks": [                          // 1+ tracks per chapter
           {
             "key": "01",
@@ -145,7 +145,7 @@ def playlist_create(
     icon: Annotated[
         str | None,
         typer.Option(
-            help="Directory mode: icon mediaId for every chapter (see `yoto icons`)."
+            help="Directory mode: icon mediaId for every chapter (see `yoto icon`)."
         ),
     ] = None,
     loudnorm: Annotated[

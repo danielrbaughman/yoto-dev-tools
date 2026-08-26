@@ -249,7 +249,7 @@ def test_devices_list(respx_mock, logged_in):
     respx_mock.get(f"{API}/device-v2/devices/mine").respond(
         json=load_fixture("devices.json")
     )
-    result = runner.invoke(app, ["devices", "list", "--json"])
+    result = runner.invoke(app, ["device", "list", "--json"])
     assert result.exit_code == 0
     devices = json.loads(result.stdout)
     assert devices[0]["deviceId"] == "y2AAAAAAAAAAAAAA"
@@ -260,7 +260,7 @@ def test_icons_search_filters_public_library(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
         json=load_fixture("icons_public.json")
     )
-    result = runner.invoke(app, ["icons", "search", "sky", "--json"])
+    result = runner.invoke(app, ["icon", "search", "sky", "--json"])
     assert result.exit_code == 0
     icons = json.loads(result.stdout)
     assert {icon["title"] for icon in icons} == {"Moon", "Star"}

@@ -9,8 +9,8 @@ import typer
 
 from yoto import __version__
 from yoto.adapters.cli.auth_cmds import auth_app
-from yoto.adapters.cli.devices_cmds import devices_app
-from yoto.adapters.cli.icons_cmds import icons_app
+from yoto.adapters.cli.device_cmds import device_app
+from yoto.adapters.cli.icon_cmds import icon_app
 from yoto.adapters.cli.library_cmds import family_app, library_app
 from yoto.adapters.cli.player_cmds import player_app
 from yoto.adapters.cli.playlist_cmds import playlist_app
@@ -26,8 +26,8 @@ app = typer.Typer(
 # list before subcommand groups).
 app.add_typer(auth_app, name="auth", rich_help_panel="Auth")
 app.add_typer(playlist_app, name="playlist", rich_help_panel="Content")
-app.add_typer(icons_app, name="icons", rich_help_panel="Content")
-app.add_typer(devices_app, name="devices", rich_help_panel="Players")
+app.add_typer(icon_app, name="icon", rich_help_panel="Content")
+app.add_typer(device_app, name="device", rich_help_panel="Players")
 app.add_typer(player_app, name="player", rich_help_panel="Players")
 app.add_typer(library_app, name="library", rich_help_panel="Family library")
 app.add_typer(family_app, name="family", rich_help_panel="Family library")
