@@ -94,7 +94,7 @@ def read_json_input(source: str) -> Any:
 @verbose()
 @handle_errors
 def playlist_list(json_: JsonOpt = False) -> None:
-    """List your MYO playlists."""
+    """Show all playlists."""
     cards = content_uc.list_cards(get_services().content)
     emit(cards, json_, presenters.show_cards)
 
