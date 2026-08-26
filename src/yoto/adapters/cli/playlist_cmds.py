@@ -95,7 +95,7 @@ def playlist_create(
     ] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """Create a playlist (from JSON, or via a subcommand like from-dir)."""
+    """Create a playlist."""
     if ctx.invoked_subcommand is not None:
         return
     if file is None:
@@ -158,8 +158,7 @@ def playlist_create_from_dir(
     ] = False,
     json_: JsonOpt = False,
 ) -> None:
-    """Upload a folder of audio and create one playlist from it (files sorted
-    naturally: 2 before 10)."""
+    """Upload a folder of audio and create one playlist from it."""
     services = get_services()
     card = uploads_uc.create_playlist_from_folder(
         services.content,
