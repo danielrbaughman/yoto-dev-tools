@@ -24,9 +24,57 @@ FileOpt = Annotated[
         "--file",
         "-f",
         help="Path to a JSON card (or '-' to read stdin). Accepts a bare card "
-        'object or {"card": {...}}.',
+        'object or {"card": {...}}; schema below.',
     ),
 ]
+
+# Rendered verbatim in --help (a paragraph containing only \b marks the next
+# paragraph as no-rewrap; paragraphs are separated by blank lines).
+_CARD_JSON_HELP = """
+
+\b
+The JSON card schema (only "title" and one chapter/track are required;
+unknown fields are passed through untouched):
+
+\b
+{
+  "title": "My Playlist",                    // required, 1-140 chars
+  "content": {
+    "chapters": [                            // 1+ chapters
+      {
+        "key": "01",
+        "title": "Chapter One",
+        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto icons`
+        "tracks": [                          // 1+ tracks per chapter
+          {
+            "key": "01",
+            "title": "Track One",
+            "trackUrl": "yoto:#<sha256>",    // from `playlist upload audio`,
+            "type": "audio",                 //   or a URL with type "stream"
+            "format": "opus",                // opus | mp3 | aac | wav | ...
+            "duration": 185,                 // seconds (optional)
+            "fileSize": 2960000              // bytes (optional)
+          }
+        ]
+      }
+    ],
+    "config": {"autoadvance": "next"}        // next | repeat | none
+  },
+  "metadata": {
+    "cover": {"imageL": "https://..."},      // from `playlist upload cover`
+    "description": "...",
+    "author": "...",
+    "category": "stories",  // stories|music|radio|podcast|sfx|activities|none
+    "languages": ["en"],
+    "minAge": 3,
+    "maxAge": 8
+  }
+}
+
+\b
+Tip: `yoto playlist get <id> --json` prints a real card in exactly this
+shape, ready to edit and feed back in.
+"""
 
 
 def read_json_input(source: str) -> Any:
@@ -79,7 +127,11 @@ upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
 
 
-@create_app.callback(invoke_without_command=True)
+@create_app.callback(
+    invoke_without_command=True,
+    help="Create a playlist from JSON (or via the from-dir subcommand)."
+    + _CARD_JSON_HELP,
+)
 @verbose()
 @handle_errors
 def playlist_create(
@@ -107,7 +159,11 @@ def playlist_create(
     emit(card, json_, presenters.show_card)
 
 
-@playlist_app.command("update")
+@playlist_app.command(
+    "update",
+    help="Update a playlist: the JSON is deep-merged onto the current card, "
+    "so partial patches never clobber fields you did not mention." + _CARD_JSON_HELP,
+)
 @verbose()
 @handle_errors
 def playlist_update(

@@ -263,3 +263,10 @@ def test_version():
 def test_usage_error_is_exit_2():
     result = runner.invoke(app, ["playlist", "get"])  # missing CARD_ID
     assert result.exit_code == 2
+
+
+def test_create_and_update_help_document_the_json_schema():
+    for argv in (["playlist", "create", "--help"], ["playlist", "update", "--help"]):
+        text = runner.invoke(app, argv).stdout
+        assert '"trackUrl": "yoto:#<sha256>"' in text
+        assert '"title": "My Playlist"' in text
