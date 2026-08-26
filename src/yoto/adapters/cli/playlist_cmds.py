@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 import typer
 
-from yoto.adapters.cli import presenters
+from yoto.adapters.cli import library_cmds, presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
 from yoto.adapters.cli.output import emit, note, print_json
@@ -117,6 +117,8 @@ def playlist_get(
 
 upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
+
+playlist_app.add_typer(library_cmds.groups_app, name="groups")
 
 
 @playlist_app.command(

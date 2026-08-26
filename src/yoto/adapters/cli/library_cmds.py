@@ -1,4 +1,4 @@
-"""`yoto library groups` and `yoto family images` commands."""
+"""`yoto playlist groups` and `yoto family images` commands."""
 
 from pathlib import Path
 from typing import Annotated
@@ -12,9 +12,8 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import library as library_uc
 
-library_app = typer.Typer(help="Family library.")
+# groups_app is mounted under `yoto playlist` (see playlist_cmds).
 groups_app = typer.Typer(help="Named groups organizing the family library.")
-library_app.add_typer(groups_app, name="groups")
 
 family_app = typer.Typer(help="Family resources.")
 images_app = typer.Typer(help="Family images (usable as group images).")

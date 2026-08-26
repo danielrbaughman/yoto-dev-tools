@@ -271,7 +271,7 @@ def test_library_groups_list(respx_mock, logged_in):
     respx_mock.get(f"{API}/card/family/library/groups").respond(
         json=load_fixture("groups.json")
     )
-    result = runner.invoke(app, ["library", "groups", "list", "--json"])
+    result = runner.invoke(app, ["playlist", "groups", "list", "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)[0]["name"] == "Favourites"
 
