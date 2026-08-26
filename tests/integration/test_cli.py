@@ -260,7 +260,7 @@ def test_icons_search_filters_public_library(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
         json=load_fixture("icons_public.json")
     )
-    result = runner.invoke(app, ["icon", "search", "sky", "--json"])
+    result = runner.invoke(app, ["icon", "search", "public", "sky", "--json"])
     assert result.exit_code == 0
     icons = json.loads(result.stdout)
     assert {icon["title"] for icon in icons} == {"Moon", "Star"}

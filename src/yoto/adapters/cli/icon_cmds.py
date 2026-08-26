@@ -14,14 +14,13 @@ from yoto.application import icons as icons_uc
 
 icon_app = typer.Typer(help="16x16 display icons (public + private).")
 
-MineOpt = Annotated[
-    bool,
-    typer.Option("--mine", help="Your uploaded icons instead of the public library."),
-]
-
+QueryArg = Annotated[str, typer.Argument(help="Matched against title and tags.")]
 
 list_app = typer.Typer(help="List icons.", no_args_is_help=True)
 icon_app.add_typer(list_app, name="list")
+
+search_app = typer.Typer(help="Search icons by title/tags.", no_args_is_help=True)
+icon_app.add_typer(search_app, name="search")
 
 
 @list_app.command("public")
@@ -42,16 +41,21 @@ def icon_list_private(json_: JsonOpt = False) -> None:
     emit(icons, json_, presenters.show_icons)
 
 
-@icon_app.command("search")
+@search_app.command("public")
 @verbose()
 @handle_errors
-def icon_search(
-    query: Annotated[str, typer.Argument(help="Matched against title and tags.")],
-    mine: MineOpt = False,
-    json_: JsonOpt = False,
-) -> None:
-    """Search icons by title/tags (public library by default)."""
-    icons = icons_uc.search_icons(get_services().icons, query, mine=mine)
+def icon_search_public(query: QueryArg, json_: JsonOpt = False) -> None:
+    """Search Yoto's public icon library."""
+    icons = icons_uc.search_icons(get_services().icons, query, mine=False)
+    emit(icons, json_, presenters.show_icons)
+
+
+@search_app.command("private")
+@verbose()
+@handle_errors
+def icon_search_private(query: QueryArg, json_: JsonOpt = False) -> None:
+    """Search the icons you have uploaded."""
+    icons = icons_uc.search_icons(get_services().icons, query, mine=True)
     emit(icons, json_, presenters.show_icons)
 
 
