@@ -12,7 +12,7 @@ from yoto.adapters.cli.output import emit, note
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import icons as icons_uc
 
-icons_app = typer.Typer(help="16x16 display icons (public library + your own).")
+icons_app = typer.Typer(help="16x16 display icons (public + private).")
 
 MineOpt = Annotated[
     bool,

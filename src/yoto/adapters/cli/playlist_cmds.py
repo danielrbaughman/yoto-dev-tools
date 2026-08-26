@@ -51,7 +51,7 @@ def read_json_input(source: str) -> Any:
 @verbose()
 @handle_errors
 def playlist_list(json_: JsonOpt = False) -> None:
-    """List your MYO playlists (chapters are omitted here — use `get`)."""
+    """List your MYO playlists."""
     cards = content_uc.list_cards(get_services().content)
     emit(cards, json_, presenters.show_cards)
 
@@ -67,7 +67,7 @@ def playlist_get(
     ] = False,
     json_: JsonOpt = False,
 ) -> None:
-    """Show one playlist in full."""
+    """Show one playlist."""
     card = content_uc.get_card(get_services().content, card_id, playable=playable)
     emit(card, json_, presenters.show_card)
 
@@ -76,7 +76,7 @@ def playlist_get(
 @verbose()
 @handle_errors
 def playlist_create(file: FileOpt, json_: JsonOpt = False) -> None:
-    """Create a playlist from a JSON document."""
+    """Create a playlist."""
     card = content_uc.create_card(get_services().content, read_json_input(file))
     emit(card, json_, presenters.show_card)
 
@@ -89,8 +89,7 @@ def playlist_update(
     file: FileOpt,
     json_: JsonOpt = False,
 ) -> None:
-    """Update a playlist: the JSON is merged onto the current card, so partial
-    patches never clobber fields you did not mention."""
+    """Update a playlist."""
     card = content_uc.update_card(
         get_services().content, card_id, read_json_input(file)
     )
