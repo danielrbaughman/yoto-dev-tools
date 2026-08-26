@@ -33,8 +33,7 @@ FileOpt = Annotated[
 _CARD_JSON_HELP = """
 
 \b
-The JSON card schema (only "title" and one chapter/track are required;
-unknown fields are passed through untouched):
+The JSON card schema (only "title" and one chapter/track are required; unknown fields are passed through untouched):
 
 \b
 {
@@ -72,8 +71,7 @@ unknown fields are passed through untouched):
 }
 
 \b
-Tip: `yoto playlist get <id> --json` prints a real card in exactly this
-shape, ready to edit and feed back in.
+Tip: `yoto playlist get <id> --json` prints a real card in exactly this shape, ready to edit and feed back in.
 """
 
 
