@@ -28,7 +28,7 @@ icon_app.add_typer(list_app, name="list")
 @verbose()
 @handle_errors
 def icon_list_public(json_: JsonOpt = False) -> None:
-    """List Yoto's public icon library (titles + searchable tags)."""
+    """List Yoto's public icon library."""
     icons = icons_uc.list_icons(get_services().icons, mine=False)
     emit(icons, json_, presenters.show_icons)
 
