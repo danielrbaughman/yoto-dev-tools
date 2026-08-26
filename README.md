@@ -6,7 +6,7 @@ stdout/stderr discipline).
 
 ```console
 $ yoto playlist list
-$ yoto playlist create from-dir ./album --title "Road Trip Mix"
+$ yoto playlist create --file ./album --title "Road Trip Mix"
 $ yoto player "Kitchen Player" status
 $ yoto playlist list --json | jq -r '.[].cardId'
 ```
@@ -47,8 +47,9 @@ logged-in machine with `yoto auth token`).
 ```
 yoto
 ├── auth      login | logout | whoami | token [--refresh]
-├── playlist  list | get | create --file card.json|- | update | delete
-│             create from-dir DIR [--title] [--cover IMG] [--icon MEDIA_ID]
+├── playlist  list | get | create | update | delete
+│             create --file card.json|-  from a JSON card (schema in --help), or:
+│             create --file DIR [--title] [--cover IMG] [--icon ID]  one chapter per audio file
 │             upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
 │             upload cover FILE [--type]
 ├── icons     list | search QUERY | upload FILE   [--mine]

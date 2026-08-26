@@ -198,14 +198,46 @@ def test_upload_group_has_audio_and_cover():
     assert runner.invoke(app, ["playlist", "upload", "cover", "--help"]).exit_code == 0
 
 
-def test_create_from_dir_nests_under_create():
-    assert (
-        runner.invoke(app, ["playlist", "create", "from-dir", "--help"]).exit_code == 0
+@respx.mock(assert_all_called=True)
+def test_create_from_directory_uploads_and_builds_chapters(
+    respx_mock, logged_in, tmp_path
+):
+    album = tmp_path / "album"
+    album.mkdir()
+    (album / "1 - Only Song.mp3").write_bytes(b"audio")
+    respx_mock.get(f"{API}/media/transcode/audio/uploadUrl").respond(
+        json={"upload": {"uploadUrl": "https://s3.test/put", "uploadId": "u1"}}
     )
-    # bare `create` without --file explains both forms
-    result = runner.invoke(app, ["playlist", "create"])
+    respx_mock.put("https://s3.test/put").respond(200)
+    respx_mock.get(f"{API}/media/upload/u1/transcoded").respond(
+        json={
+            "transcode": {
+                "transcodedSha256": "shaX",
+                "transcodedInfo": {"duration": 9, "fileSize": 5, "format": "opus"},
+            }
+        }
+    )
+    post = respx_mock.post(f"{API}/content").respond(
+        json={"card": {"cardId": "new01", "title": "Mix"}}
+    )
+    result = runner.invoke(
+        app,
+        ["playlist", "create", "--file", str(album), "--title", "Mix", "--json"],
+    )
+    assert result.exit_code == 0
+    body = json.loads(post.calls[0].request.content)
+    assert body["title"] == "Mix"
+    chapters = body["content"]["chapters"]
+    assert len(chapters) == 1
+    assert chapters[0]["tracks"][0]["trackUrl"] == "yoto:#shaX"
+
+
+def test_create_rejects_dir_options_in_json_mode(logged_in):
+    result = runner.invoke(
+        app, ["playlist", "create", "--file", "-", "--title", "X"], input="{}"
+    )
     assert result.exit_code == 5
-    assert "from-dir" in result.stderr
+    assert "directory" in result.stderr
 
 
 def test_bare_upload_is_gone():

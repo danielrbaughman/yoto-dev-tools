@@ -115,42 +115,69 @@ def playlist_get(
     emit(card, json_, presenters.show_card)
 
 
-# `create` is a group so creation flows nest under it (`create from-dir`),
-# while plain `create --file card.json` still works via the callback.
-create_app = typer.Typer()
-playlist_app.add_typer(create_app, name="create", invoke_without_command=True)
-
 upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
 
 
-@create_app.callback(
-    invoke_without_command=True,
-    help="Create a playlist." + _CARD_JSON_HELP,
+@playlist_app.command(
+    "create",
+    help="Create a playlist from a JSON card, or from a directory of audio "
+    "files (one chapter per file, natural sort: 2 before 10)." + _CARD_JSON_HELP,
 )
 @verbose()
 @handle_errors
 def playlist_create(
-    ctx: typer.Context,
     file: Annotated[
-        str | None,
+        str,
         typer.Option(
             "--file",
             "-f",
-            help="Path to a JSON card (or '-' to read stdin).",
+            help="A JSON card ('-' to read stdin), or a directory of audio files.",
+        ),
+    ],
+    title: Annotated[
+        str | None,
+        typer.Option(help="Directory mode: playlist title (default: dir name)."),
+    ] = None,
+    cover: Annotated[
+        Path | None,
+        typer.Option(help="Directory mode: cover image to upload and attach."),
+    ] = None,
+    icon: Annotated[
+        str | None,
+        typer.Option(
+            help="Directory mode: icon mediaId for every chapter (see `yoto icons`)."
         ),
     ] = None,
+    loudnorm: Annotated[
+        bool,
+        typer.Option(
+            "--loudnorm", help="Directory mode: ask Yoto to loudness-normalize."
+        ),
+    ] = False,
     json_: JsonOpt = False,
 ) -> None:
     """Create a playlist."""
-    if ctx.invoked_subcommand is not None:
-        return
-    if file is None:
-        raise InputError(
-            "Pass --file card.json (or '-' for stdin), "
-            "or use `yoto playlist create from-dir DIR`."
+    services = get_services()
+    if file != "-" and Path(file).is_dir():
+        card = uploads_uc.create_playlist_from_folder(
+            services.content,
+            services.media,
+            services.clock,
+            Path(file),
+            title=title,
+            cover=cover,
+            icon_media_id=icon,
+            loudnorm=loudnorm,
+            on_progress=note,
         )
-    card = content_uc.create_card(get_services().content, read_json_input(file))
+    else:
+        if title is not None or cover is not None or icon is not None or loudnorm:
+            raise InputError(
+                "--title/--cover/--icon/--loudnorm only apply when --file "
+                "is a directory."
+            )
+        card = content_uc.create_card(services.content, read_json_input(file))
     emit(card, json_, presenters.show_card)
 
 
@@ -184,44 +211,6 @@ def playlist_delete(
         typer.confirm(f"Delete card {card_id}?", abort=True, err=True)
     content_uc.delete_card(get_services().content, card_id)
     note(f"Deleted {card_id}.")
-
-
-@create_app.command("from-dir")
-@verbose()
-@handle_errors
-def playlist_create_from_dir(
-    folder: Annotated[
-        Path, typer.Argument(help="Directory of audio files (one chapter each).")
-    ],
-    title: Annotated[
-        str | None, typer.Option(help="Playlist title (default: folder name).")
-    ] = None,
-    cover: Annotated[
-        Path | None, typer.Option(help="Cover image to upload and attach.")
-    ] = None,
-    icon: Annotated[
-        str | None,
-        typer.Option(help="Icon mediaId to use for every chapter (see `yoto icons`)."),
-    ] = None,
-    loudnorm: Annotated[
-        bool, typer.Option("--loudnorm", help="Ask Yoto to loudness-normalize.")
-    ] = False,
-    json_: JsonOpt = False,
-) -> None:
-    """Upload a folder of audio and create one playlist from it."""
-    services = get_services()
-    card = uploads_uc.create_playlist_from_folder(
-        services.content,
-        services.media,
-        services.clock,
-        folder,
-        title=title,
-        cover=cover,
-        icon_media_id=icon,
-        loudnorm=loudnorm,
-        on_progress=note,
-    )
-    emit(card, json_, presenters.show_card)
 
 
 @upload_app.command("audio")
