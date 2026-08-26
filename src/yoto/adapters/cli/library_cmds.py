@@ -13,7 +13,7 @@ from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import library as library_uc
 
 # groups_app is mounted under `yoto playlist` (see playlist_cmds).
-groups_app = typer.Typer(help="Named groups organizing the family library.")
+groups_app = typer.Typer(help="Playlist groups.")
 
 family_app = typer.Typer(help="Family resources.")
 images_app = typer.Typer(help="Family images (usable as group images).")
@@ -26,7 +26,7 @@ GroupIdArg = Annotated[str, typer.Argument(help="Group id.")]
 @verbose()
 @handle_errors
 def groups_list(json_: JsonOpt = False) -> None:
-    """List library groups."""
+    """List all groups."""
     groups = library_uc.list_groups(get_services().library)
     emit(groups, json_, presenters.show_groups)
 
@@ -35,7 +35,7 @@ def groups_list(json_: JsonOpt = False) -> None:
 @verbose()
 @handle_errors
 def groups_get(group_id: GroupIdArg, json_: JsonOpt = False) -> None:
-    """Show one group with its content."""
+    """Show one group."""
     group = library_uc.get_group(get_services().library, group_id)
     emit(group, json_, presenters.show_group)
 
@@ -59,7 +59,7 @@ def groups_create(
     ] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """Create a group (max 20 per family)."""
+    """Create a group."""
     group = library_uc.create_group(
         get_services().library, name=name, image_id=image, content_ids=content
     )
@@ -82,7 +82,7 @@ def groups_update(
     ] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """Update a group (only the provided fields change)."""
+    """Update a group."""
     group = library_uc.update_group(
         get_services().library,
         group_id,
@@ -97,7 +97,7 @@ def groups_update(
 @verbose()
 @handle_errors
 def groups_delete(group_id: GroupIdArg, yes: YesOpt = False) -> None:
-    """Delete a group (content stays in the library)."""
+    """Delete a group."""
     if not yes:
         typer.confirm(f"Delete group {group_id}?", abort=True, err=True)
     library_uc.delete_group(get_services().library, group_id)
