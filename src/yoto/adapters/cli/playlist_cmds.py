@@ -18,7 +18,6 @@ from yoto.domain.errors import InputError
 
 playlist_app = typer.Typer(help="MYO playlists")
 covers_app = typer.Typer(help="Cover images for MYO playlists.")
-playlist_app.add_typer(covers_app, name="covers")
 
 FileOpt = Annotated[
     str,
@@ -72,11 +71,38 @@ def playlist_get(
     emit(card, json_, presenters.show_card)
 
 
-@playlist_app.command("create")
+# `create` is a group so creation flows nest under it (`create from-dir`),
+# while plain `create --file card.json` still works via the callback.
+# Registered before covers_app so it lists first among the sub-groups.
+create_app = typer.Typer()
+playlist_app.add_typer(create_app, name="create", invoke_without_command=True)
+playlist_app.add_typer(covers_app, name="covers")
+
+
+@create_app.callback(invoke_without_command=True)
 @verbose()
 @handle_errors
-def playlist_create(file: FileOpt, json_: JsonOpt = False) -> None:
-    """Create a playlist."""
+def playlist_create(
+    ctx: typer.Context,
+    file: Annotated[
+        str | None,
+        typer.Option(
+            "--file",
+            "-f",
+            help="Path to a JSON card (or '-' to read stdin). Accepts a bare "
+            'card object or {"card": {...}}.',
+        ),
+    ] = None,
+    json_: JsonOpt = False,
+) -> None:
+    """Create a playlist (from JSON, or via a subcommand like from-dir)."""
+    if ctx.invoked_subcommand is not None:
+        return
+    if file is None:
+        raise InputError(
+            "Pass --file card.json (or '-' for stdin), "
+            "or use `yoto playlist create from-dir DIR`."
+        )
     card = content_uc.create_card(get_services().content, read_json_input(file))
     emit(card, json_, presenters.show_card)
 
@@ -110,7 +136,7 @@ def playlist_delete(
     note(f"Deleted {card_id}.")
 
 
-@playlist_app.command("create-from-dir")
+@create_app.command("from-dir")
 @verbose()
 @handle_errors
 def playlist_create_from_dir(

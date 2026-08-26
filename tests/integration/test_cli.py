@@ -197,6 +197,16 @@ def test_covers_lives_under_playlist():
     assert runner.invoke(app, ["playlist", "covers", "--help"]).exit_code == 0
 
 
+def test_create_from_dir_nests_under_create():
+    assert (
+        runner.invoke(app, ["playlist", "create", "from-dir", "--help"]).exit_code == 0
+    )
+    # bare `create` without --file explains both forms
+    result = runner.invoke(app, ["playlist", "create"])
+    assert result.exit_code == 5
+    assert "from-dir" in result.stderr
+
+
 def test_bare_upload_is_a_hidden_alias():
     assert runner.invoke(app, ["upload", "--help"]).exit_code == 0
     help_text = runner.invoke(app, ["--help"]).stdout
