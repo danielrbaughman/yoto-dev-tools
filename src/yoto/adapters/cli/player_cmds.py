@@ -1,10 +1,13 @@
 """`yoto player` commands: list & config via REST, control & status via MQTT."""
 
+from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Annotated
 
 import typer
+from rich.live import Live
+from rich.text import Text
 
 from yoto.adapters.cli import presenters
 from yoto.adapters.cli.deps import get_services
@@ -21,7 +24,7 @@ from yoto.application import devices as devices_uc
 from yoto.application import player as player_uc
 from yoto.application.ports import PlayerGateway
 from yoto.domain.errors import InputError
-from yoto.domain.player import CommandAck, PlayRequest, card_uri
+from yoto.domain.player import CommandAck, PlaybackEvent, PlayRequest, card_uri
 
 player_app = typer.Typer(help="Yoto players: control, status, configuration.")
 
@@ -171,11 +174,27 @@ def volume(
 def watch(device: DeviceArg, json_: JsonOpt = False) -> None:
     """Stream playback events."""
     with connected_player(device) as (gateway, device_id):
-        for event in player_uc.watch_events(gateway, device_id):
-            if json_:
+        events = player_uc.watch_events(gateway, device_id)
+        if json_:
+            for event in events:
                 print_json_line(event)
-            else:
+        elif stdout_console.is_terminal:
+            _watch_live(events)
+        else:
+            for event in events:
                 stdout_console.print(presenters.event_line(event))
+
+
+def _watch_live(events: Iterator[PlaybackEvent]) -> None:
+    """Growing table that keeps the most recent events on screen."""
+    keep = max(5, stdout_console.height - 4)
+    rows: deque[list[Text]] = deque(maxlen=keep)
+    with Live(
+        presenters.event_table([]), console=stdout_console, refresh_per_second=4
+    ) as live:
+        for event in events:
+            rows.append(presenters.event_row(event))
+            live.update(presenters.event_table(list(rows)))
 
 
 @player_app.command()

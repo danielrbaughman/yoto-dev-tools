@@ -4,6 +4,8 @@ API-supplied strings are always wrapped in ``Text`` so a stray ``[`` in a
 title is rendered literally rather than parsed as Rich markup.
 """
 
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -225,20 +227,66 @@ def show_status(status: PlayerStatus) -> None:
     _kv_from_mapping(status.model_dump(by_alias=True, exclude_none=True))
 
 
-def event_line(event: PlaybackEvent) -> Text:
+EVENT_COLUMNS: list[dict[str, Any]] = [
+    {"header": "Time", "style": "muted", "no_wrap": True},
+    {"header": "State", "no_wrap": True},
+    {"header": "Card", "style": "id", "no_wrap": True},
+    {"header": "Position", "justify": "right", "no_wrap": True},
+    {"header": "Vol", "justify": "right", "no_wrap": True},
+    {"header": "Source", "style": "muted", "no_wrap": True},
+    {"header": "Chapter"},
+    {"header": "Track"},
+]
+
+
+def _event_time(event: PlaybackEvent) -> str:
+    stamp = event.event_utc if event.event_utc else time.time()
+    return (
+        datetime.fromtimestamp(float(stamp), tz=UTC).astimezone().strftime("%H:%M:%S")
+    )
+
+
+def event_row(event: PlaybackEvent) -> list[Text]:
+    """One table row per playback event (same cells as ``event_line``)."""
+    state = event.playback_status or "?"
+    card = event.card_id if event.card_id and event.card_id != "none" else "-"
     position = fmt_duration(event.position) or "-"
     length = fmt_duration(event.track_length) or "-"
-    track = " / ".join(
-        part for part in [event.chapter_title, event.track_title] if part
-    )
-    state = event.playback_status or "?"
-    return Text.assemble(
-        (f"{state:<8} ", _STATUS_STYLES.get(state, "muted")),
-        (f"{event.card_id or '-':<8} ", "id"),
-        f"{position}/{length}  ",
-        (f"vol={event.volume}  ", "muted"),
-        track,
-    )
+    return [
+        Text(_event_time(event)),
+        Text(state, style=_STATUS_STYLES.get(state, "muted")),
+        Text(card),
+        Text(f"{position} / {length}" if length != "-" else position),
+        Text(str(event.volume) if event.volume is not None else "-"),
+        Text(event.source or ""),
+        Text(event.chapter_title or ""),
+        Text(event.track_title or ""),
+    ]
+
+
+def event_table(rows: list[list[Text]]) -> Table:
+    """Table for the Live view of ``player watch``."""
+    table = _table(*EVENT_COLUMNS)
+    for row in rows:
+        table.add_row(*row)
+    return table
+
+
+_EVENT_WIDTHS = [8, 8, 8, 15, 4, 7]
+
+
+def event_line(event: PlaybackEvent) -> Text:
+    """Fixed-width single line (used when stdout is not a terminal)."""
+    cells = event_row(event)
+    line = Text()
+    for cell, width in zip(cells, _EVENT_WIDTHS, strict=False):
+        cell.pad_right(width - cell.cell_len + 2)
+        line.append_text(cell)
+    line.append_text(cells[6])
+    if cells[7].plain and cells[7].plain != cells[6].plain:
+        line.append(" / ").append_text(cells[7])
+    line.rstrip()
+    return line
 
 
 def show_groups(groups: list[LibraryGroup]) -> None:
