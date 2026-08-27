@@ -115,9 +115,8 @@ class LoginFlow:
     def run(self, *, timeout: float = 300.0, open_browser: bool = True) -> UserInfo:
         if not self._client_id:
             raise ConfigError(
-                "No client id configured. Create one at https://dashboard.yoto.dev/ "
-                "and set YOTO_CLIENT_ID (env or .env), ~/.config/yoto/config.json, "
-                "or pass --client-id."
+                "Client id is empty. Unset YOTO_CLIENT_ID / .env / config.json to use "
+                "the built-in one, or create your own at https://dashboard.yoto.dev/."
             )
         verifier, challenge = pkce_pair()
         state = secrets.token_urlsafe(16)

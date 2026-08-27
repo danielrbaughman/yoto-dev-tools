@@ -27,7 +27,8 @@ def login(
         ),
     ] = None,
     client_id: Annotated[
-        str | None, typer.Option(help="Override the configured client id.")
+        str | None,
+        typer.Option(help="Use your own OAuth client id instead of the built-in one."),
     ] = None,
     no_browser: Annotated[
         bool, typer.Option("--no-browser", help="Print the URL instead of opening it.")

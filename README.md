@@ -15,17 +15,7 @@ A CLI and MCP for the [Yoto API](https://yoto.dev/api/)
    Re-run `./install.sh` after pulling changes — it rebuilds from the
    current sources.
 
-2. Create an app at [dashboard.yoto.dev](https://dashboard.yoto.dev/)
-   (**public client** — the CLI uses PKCE, no secret). Register the redirect
-   URI **`http://127.0.0.1:8787/callback`** exactly (or another port, passed
-   via `yoto auth login --port N`).
-
-3. Put the client id where the CLI can find it — any of:
-   - `.env` in the working directory: `yoto_client_id=...`
-   - environment: `YOTO_CLIENT_ID=...`
-   - `~/.config/yoto/config.json`: `{"client_id": "..."}`
-
-4. `yoto auth login` — opens the browser, stores tokens in
+2. `yoto auth login` — opens the browser, stores tokens in
    `~/.config/yoto/tokens.json` (0600). Refresh tokens are single-use; the CLI
    rotates and persists them atomically, and serializes concurrent invocations
    with a lock file.

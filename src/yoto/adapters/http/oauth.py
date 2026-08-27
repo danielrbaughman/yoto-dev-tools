@@ -74,8 +74,8 @@ class Auth0Gateway:
     def _require_client_id(self) -> str:
         if not self._client_id:
             raise ConfigError(
-                "No client id configured. Create one at https://dashboard.yoto.dev/ "
-                "and set YOTO_CLIENT_ID (env or .env) or ~/.config/yoto/config.json."
+                "Client id is empty. Unset YOTO_CLIENT_ID / .env / config.json to use "
+                "the built-in one, or create your own at https://dashboard.yoto.dev/."
             )
         return self._client_id
 

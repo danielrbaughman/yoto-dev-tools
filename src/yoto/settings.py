@@ -28,6 +28,12 @@ DEFAULT_SCOPES = (
 )
 
 
+# Public OAuth client registered for yoto-dev-tools at https://dashboard.yoto.dev/
+# (PKCE, no secret — safe to ship). Users may override it via YOTO_CLIENT_ID,
+# .env, ~/.config/yoto/config.json, or `yoto auth login --client-id`.
+DEFAULT_CLIENT_ID = "IWW7UabcNkTlZw5mwQBINqiWl3riIZXA"
+
+
 def default_config_dir() -> Path:
     env = os.environ.get("YOTO_CONFIG_DIR")
     if env:
@@ -44,7 +50,7 @@ class YotoSettings(BaseSettings):
         extra="ignore",
     )
 
-    client_id: str | None = None
+    client_id: str = DEFAULT_CLIENT_ID
     access_token: str | None = None  # YOTO_ACCESS_TOKEN: headless/CI override
     api_url: str = "https://api.yotoplay.com"
     auth_url: str = "https://login.yotoplay.com"
