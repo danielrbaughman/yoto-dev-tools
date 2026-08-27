@@ -40,7 +40,7 @@ def test_content_list_json_outputs_api_shape(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/mine").respond(
         json=load_fixture("content_mine.json")
     )
-    result = runner.invoke(app, ["playlist", "list", "--json"])
+    result = runner.invoke(app, ["myo", "playlist", "list", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert [card["cardId"] for card in data] == ["abc12", "def34"]
@@ -52,7 +52,7 @@ def test_content_list_human_table(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/mine").respond(
         json=load_fixture("content_mine.json")
     )
-    result = runner.invoke(app, ["playlist", "list"])
+    result = runner.invoke(app, ["myo", "playlist", "list"])
     assert result.exit_code == 0
     assert "Bedtime Stories" in result.stdout
     assert "2 card(s)" in result.stdout
@@ -63,7 +63,7 @@ def test_content_get_json_round_trips_unknown_fields(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/abc12").respond(
         json={"card": load_fixture("card_full.json")}
     )
-    result = runner.invoke(app, ["playlist", "get", "abc12", "--json"])
+    result = runner.invoke(app, ["myo", "playlist", "get", "abc12", "--json"])
     assert result.exit_code == 0
     card = json.loads(result.stdout)
     assert card["sortkey"] == "zz-unknown-top-level"
@@ -80,7 +80,7 @@ def test_content_update_merges_patch_from_stdin(respx_mock, logged_in):
     )
     result = runner.invoke(
         app,
-        ["playlist", "update", "abc12", "--file", "-", "--json"],
+        ["myo", "playlist", "update", "abc12", "--file", "-", "--json"],
         input='{"title": "Renamed"}',
     )
     assert result.exit_code == 0
@@ -96,7 +96,7 @@ def test_not_found_maps_to_exit_3_with_clean_stdout(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/zzzzz").respond(
         404, json={"error": {"code": "not-found", "message": "Card zzzzz missing"}}
     )
-    result = runner.invoke(app, ["playlist", "get", "zzzzz"])
+    result = runner.invoke(app, ["myo", "playlist", "get", "zzzzz"])
     assert result.exit_code == 3
     assert result.stdout == ""
     assert "error: Card zzzzz missing" in result.stderr
@@ -107,7 +107,7 @@ def test_json_mode_emits_error_object_on_stderr(respx_mock, logged_in):
     respx_mock.get(f"{API}/content/zzzzz").respond(
         404, json={"error": {"code": "not-found", "message": "Card zzzzz missing"}}
     )
-    result = runner.invoke(app, ["playlist", "get", "zzzzz", "--json"])
+    result = runner.invoke(app, ["myo", "playlist", "get", "zzzzz", "--json"])
     assert result.exit_code == 3
     assert result.stdout == ""
     error = json.loads(result.stderr)["error"]
@@ -116,14 +116,14 @@ def test_json_mode_emits_error_object_on_stderr(respx_mock, logged_in):
 
 
 def test_missing_credentials_maps_to_exit_4():
-    result = runner.invoke(app, ["playlist", "list"])
+    result = runner.invoke(app, ["myo", "playlist", "list"])
     assert result.exit_code == 4
     assert "Not logged in" in result.stderr
 
 
 def test_bad_json_input_maps_to_exit_5(logged_in):
     result = runner.invoke(
-        app, ["playlist", "create", "--file", "-", "--json"], input="{nope"
+        app, ["myo", "playlist", "create", "--file", "-", "--json"], input="{nope"
     )
     assert result.exit_code == 5
     assert json.loads(result.stderr)["error"]["exitCode"] == 5
@@ -132,10 +132,10 @@ def test_bad_json_input_maps_to_exit_5(logged_in):
 @respx.mock(assert_all_called=True)
 def test_delete_requires_confirmation_and_yes_skips_it(respx_mock, logged_in):
     route = respx_mock.delete(f"{API}/content/abc12").respond(json={"status": "ok"})
-    aborted = runner.invoke(app, ["playlist", "delete", "abc12"], input="n\n")
+    aborted = runner.invoke(app, ["myo", "playlist", "delete", "abc12"], input="n\n")
     assert aborted.exit_code != 0
     assert not route.called
-    confirmed = runner.invoke(app, ["playlist", "delete", "abc12", "--yes"])
+    confirmed = runner.invoke(app, ["myo", "playlist", "delete", "abc12", "--yes"])
     assert confirmed.exit_code == 0
     assert route.called
     assert "Deleted abc12." in confirmed.stderr
@@ -183,7 +183,9 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
             }
         }
     )
-    result = runner.invoke(app, ["playlist", "upload", "audio", str(audio), "--json"])
+    result = runner.invoke(
+        app, ["myo", "playlist", "upload", "audio", str(audio), "--json"]
+    )
     assert result.exit_code == 0
     assert "Authorization" not in put.calls[0].request.headers
     (entry,) = json.loads(result.stdout)
@@ -194,8 +196,14 @@ def test_upload_end_to_end(respx_mock, logged_in, tmp_path):
 
 
 def test_upload_group_has_audio_and_cover():
-    assert runner.invoke(app, ["playlist", "upload", "audio", "--help"]).exit_code == 0
-    assert runner.invoke(app, ["playlist", "upload", "cover", "--help"]).exit_code == 0
+    assert (
+        runner.invoke(app, ["myo", "playlist", "upload", "audio", "--help"]).exit_code
+        == 0
+    )
+    assert (
+        runner.invoke(app, ["myo", "playlist", "upload", "cover", "--help"]).exit_code
+        == 0
+    )
 
 
 @respx.mock(assert_all_called=True)
@@ -222,7 +230,7 @@ def test_create_from_directory_uploads_and_builds_chapters(
     )
     result = runner.invoke(
         app,
-        ["playlist", "create", "--file", str(album), "--title", "Mix", "--json"],
+        ["myo", "playlist", "create", "--file", str(album), "--title", "Mix", "--json"],
     )
     assert result.exit_code == 0
     body = json.loads(post.calls[0].request.content)
@@ -234,7 +242,7 @@ def test_create_from_directory_uploads_and_builds_chapters(
 
 def test_create_rejects_dir_options_in_json_mode(logged_in):
     result = runner.invoke(
-        app, ["playlist", "create", "--file", "-", "--title", "X"], input="{}"
+        app, ["myo", "playlist", "create", "--file", "-", "--title", "X"], input="{}"
     )
     assert result.exit_code == 5
     assert "directory" in result.stderr
@@ -260,9 +268,7 @@ def test_icons_search_filters_public_library(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
         json=load_fixture("icons_public.json")
     )
-    result = runner.invoke(
-        app, ["playlist", "icon", "search", "public", "sky", "--json"]
-    )
+    result = runner.invoke(app, ["myo", "icon", "search", "public", "sky", "--json"])
     assert result.exit_code == 0
     icons = json.loads(result.stdout)
     assert {icon["title"] for icon in icons} == {"Moon", "Star"}
@@ -273,7 +279,7 @@ def test_library_groups_list(respx_mock, logged_in):
     respx_mock.get(f"{API}/card/family/library/groups").respond(
         json=load_fixture("groups.json")
     )
-    result = runner.invoke(app, ["playlist", "group", "list", "--json"])
+    result = runner.invoke(app, ["myo", "group", "list", "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)[0]["name"] == "Favourites"
 
@@ -283,9 +289,7 @@ def test_family_images_get_prints_signed_url(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/family/images/sha-1").respond(
         302, headers={"Location": "https://signed.example/x"}
     )
-    result = runner.invoke(
-        app, ["playlist", "group", "images", "get", "sha-1", "--json"]
-    )
+    result = runner.invoke(app, ["myo", "group", "images", "get", "sha-1", "--json"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["url"] == "https://signed.example/x"
 
@@ -297,12 +301,15 @@ def test_version():
 
 
 def test_usage_error_is_exit_2():
-    result = runner.invoke(app, ["playlist", "get"])  # missing CARD_ID
+    result = runner.invoke(app, ["myo", "playlist", "get"])  # missing CARD_ID
     assert result.exit_code == 2
 
 
 def test_create_and_update_help_document_the_json_schema():
-    for argv in (["playlist", "create", "--help"], ["playlist", "update", "--help"]):
+    for argv in (
+        ["myo", "playlist", "create", "--help"],
+        ["myo", "playlist", "update", "--help"],
+    ):
         text = runner.invoke(app, argv).stdout
         assert '"trackUrl": "yoto:#<sha256>"' in text
         assert '"title": "My Playlist"' in text
@@ -316,10 +323,10 @@ def test_icon_list_public_and_private_subcommands(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
         json={"displayIcons": [{"mediaId": "mine-1"}]}
     )
-    public = runner.invoke(app, ["playlist", "icon", "list", "public", "--json"])
+    public = runner.invoke(app, ["myo", "icon", "list", "public", "--json"])
     assert public.exit_code == 0
     assert len(json.loads(public.stdout)) == 3
-    private = runner.invoke(app, ["playlist", "icon", "list", "private", "--json"])
+    private = runner.invoke(app, ["myo", "icon", "list", "private", "--json"])
     assert private.exit_code == 0
     assert json.loads(private.stdout)[0]["mediaId"] == "mine-1"
 
@@ -332,7 +339,7 @@ def test_icon_list_all_combines_both(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
         json={"displayIcons": [{"mediaId": "mine-1"}]}
     )
-    result = runner.invoke(app, ["playlist", "icon", "list", "all", "--json"])
+    result = runner.invoke(app, ["myo", "icon", "list", "all", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert len(data) == 4

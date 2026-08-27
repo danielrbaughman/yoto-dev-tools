@@ -1,4 +1,4 @@
-"""`yoto playlist` commands (incl. `create from-dir` and `upload audio|cover`)."""
+"""`yoto myo` commands: playlist CRUD/uploads, groups, icons."""
 
 import json
 import sys
@@ -16,7 +16,9 @@ from yoto.application import content as content_uc
 from yoto.application import uploads as uploads_uc
 from yoto.domain.errors import InputError
 
+myo_app = typer.Typer(help="MYO (Make Your Own) content.")
 playlist_app = typer.Typer(help="MYO playlists")
+myo_app.add_typer(playlist_app, name="playlist")
 
 FileOpt = Annotated[
     str,
@@ -42,12 +44,12 @@ The JSON card schema (only "title" and one chapter/track are required; unknown f
       {
         "key": "01",
         "title": "Chapter One",
-        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto playlist icon`
+        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto myo icon`
         "tracks": [                          // 1+ tracks per chapter
           {
             "key": "01",
             "title": "Track One",
-            "trackUrl": "yoto:#<sha256>",    // from `playlist upload audio`,
+            "trackUrl": "yoto:#<sha256>",    // from `myo playlist upload audio`,
             "type": "audio",                 //   or a URL with type "stream"
             "format": "opus",                // opus | mp3 | aac | wav | ...
             "duration": 185,                 // seconds (optional)
@@ -59,7 +61,7 @@ The JSON card schema (only "title" and one chapter/track are required; unknown f
     "config": {"autoadvance": "next"}        // next | repeat | none
   },
   "metadata": {
-    "cover": {"imageL": "https://..."},      // from `playlist upload cover`
+    "cover": {"imageL": "https://..."},      // from `myo playlist upload cover`
     "description": "...",
     "author": "...",
     "category": "stories",  // stories|music|radio|podcast|sfx|activities|none
@@ -70,7 +72,7 @@ The JSON card schema (only "title" and one chapter/track are required; unknown f
 }
 
 \b
-Tip: `yoto playlist get <id> --json` prints a real card in exactly this shape, ready to edit and feed back in.
+Tip: `yoto myo playlist get <id> --json` prints a real card in exactly this shape, ready to edit and feed back in.
 """
 
 
@@ -118,8 +120,8 @@ def playlist_get(
 upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
 
-playlist_app.add_typer(library_cmds.group_app, name="group")
-playlist_app.add_typer(icon_cmds.icon_app, name="icon")
+myo_app.add_typer(library_cmds.group_app, name="group")
+myo_app.add_typer(icon_cmds.icon_app, name="icon")
 
 
 @playlist_app.command(
@@ -148,7 +150,7 @@ def playlist_create(
     icon: Annotated[
         str | None,
         typer.Option(
-            help="Directory mode: icon mediaId for every chapter (see `yoto playlist icon`)."
+            help="Directory mode: icon mediaId for every chapter (see `yoto myo icon`)."
         ),
     ] = None,
     loudnorm: Annotated[

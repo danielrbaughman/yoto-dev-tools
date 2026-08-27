@@ -5,10 +5,10 @@
 stdout/stderr discipline).
 
 ```console
-$ yoto playlist list
-$ yoto playlist create --file ./album --title "Road Trip Mix"
+$ yoto myo playlist list
+$ yoto myo playlist create --file ./album --title "Road Trip Mix"
 $ yoto player status "Kitchen Player"
-$ yoto playlist list --json | jq -r '.[].cardId'
+$ yoto myo playlist list --json | jq -r '.[].cardId'
 ```
 
 ## Setup
@@ -51,20 +51,18 @@ yoto
 │             pause|resume|stop DEVICE | volume DEVICE [0-100] | watch DEVICE   (MQTT)
 │             light DEVICE R G B|--hex|--off | sleep DEVICE SECONDS|--off
 │             config get DEVICE | config set DEVICE KEY=VALUE... [--name]   (REST)
-└── playlist  list | get | create | update | delete
-              create --file card.json|-  from a JSON card (schema in --help), or:
-              create --file DIR [--title] [--cover IMG] [--icon ID]  one chapter per audio file
-              upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
-              upload cover FILE [--type]
-              group list|get|create|update|delete    family-library groups
-              group images list|upload|get           images usable by groups
-              icon list|search public|private|all | icon upload FILE
+└── myo       playlist  list | get | create | update | delete
+              playlist  create --file card.json|-  (schema in --help)
+              playlist  create --file DIR [--title] [--cover IMG] [--icon ID]
+              playlist  upload audio FILE... | upload cover FILE [--type]
+              group     list|get|create|update|delete | images list|upload|get
+              icon      list|search public|private|all | upload FILE
 ```
 
 - `DEVICE` is a device id or a unique device name (case-insensitive).
-- `playlist update` is **merge semantics**: fetched card + your JSON patch →
+- `myo playlist update` is **merge semantics**: fetched card + your JSON patch →
   upsert. Unknown/undocumented API fields are preserved losslessly.
-- `playlist create/update --file -` reads JSON from stdin.
+- `myo playlist create/update --file -` reads JSON from stdin.
 - Player control needs the `family:devices:control` scope on your client.
 - There is no API to link a playlist to a physical MYO card — that final step
   happens in the Yoto app/player.
@@ -74,8 +72,8 @@ yoto
 - **stdout is data, stderr is everything else** (progress, prompts, logs,
   errors). Piping-safe; Rich disables ANSI when not a TTY and honors
   `NO_COLOR`.
-- `--json` emits **API-native camelCase JSON** — `yoto playlist get X --json`
-  output is valid `yoto playlist update X --file -` input.
+- `--json` emits **API-native camelCase JSON** — `yoto myo playlist get X --json`
+  output is valid `yoto myo playlist update X --file -` input.
 - `yoto player watch DEVICE --json` streams **NDJSON** (one event per line,
   flushed).
 - Errors in `--json` mode: stderr gets one JSON object
