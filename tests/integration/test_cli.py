@@ -281,7 +281,9 @@ def test_family_images_get_prints_signed_url(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/family/images/sha-1").respond(
         302, headers={"Location": "https://signed.example/x"}
     )
-    result = runner.invoke(app, ["family", "images", "get", "sha-1", "--json"])
+    result = runner.invoke(
+        app, ["playlist", "group", "images", "get", "sha-1", "--json"]
+    )
     assert result.exit_code == 0
     assert json.loads(result.stdout)["url"] == "https://signed.example/x"
 

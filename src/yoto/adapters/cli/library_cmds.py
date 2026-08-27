@@ -1,4 +1,4 @@
-"""`yoto playlist group` and `yoto family images` commands."""
+"""`yoto playlist group` commands (incl. `group images`)."""
 
 from pathlib import Path
 from typing import Annotated
@@ -15,9 +15,8 @@ from yoto.application import library as library_uc
 # group_app is mounted under `yoto playlist` (see playlist_cmds).
 group_app = typer.Typer(help="Playlist groups.")
 
-family_app = typer.Typer(help="Family resources.")
 images_app = typer.Typer(help="Family images (usable as group images).")
-family_app.add_typer(images_app, name="images")
+group_app.add_typer(images_app, name="images")
 
 GroupIdArg = Annotated[str, typer.Argument(help="Group id.")]
 
