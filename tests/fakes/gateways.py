@@ -8,7 +8,13 @@ from yoto.domain.content import Card
 from yoto.domain.device import Device, DeviceDetails
 from yoto.domain.errors import NotFoundError
 from yoto.domain.library import LibraryGroup
-from yoto.domain.media import CoverImage, Icon, TranscodedAudio, UploadSlot
+from yoto.domain.media import (
+    CoverImage,
+    FamilyImage,
+    Icon,
+    TranscodedAudio,
+    UploadSlot,
+)
 from yoto.domain.player import CommandAck, PlaybackEvent, PlayerStatus
 
 
@@ -185,6 +191,24 @@ class FakeLibraryGateway:
         self.groups.pop(group_id, None)
 
 
+class FakeFamilyImageGateway:
+    def __init__(self, images: list[FamilyImage] | None = None) -> None:
+        self.images = images or []
+        self.uploads: list[dict[str, Any]] = []
+        self.resolved: list[tuple[str, int, int]] = []
+
+    def list_images(self, *, limit: int | None = None) -> list[FamilyImage]:
+        return self.images if limit is None else self.images[:limit]
+
+    def upload_image(self, data: bytes, *, content_type: str) -> FamilyImage:
+        self.uploads.append({"bytes": data, "content_type": content_type})
+        return FamilyImage(image_id="sha-new", url="https://api.test/images/sha-new")
+
+    def resolve_url(self, image_id: str, *, width: int, height: int) -> str:
+        self.resolved.append((image_id, width, height))
+        return f"https://signed.test/{image_id}?w={width}&h={height}"
+
+
 class FakePlayerGateway:
     """Scripted PlayerGateway: records sends, returns canned ack/status."""
 
@@ -194,6 +218,7 @@ class FakePlayerGateway:
         self.connected: list[str] = []
         self.closed = 0
         self.sent: list[tuple[str, str, dict[str, Any]]] = []
+        self.event_stream: list[PlaybackEvent] = []
 
     def connect(self, device_id: str) -> None:
         self.connected.append(device_id)
@@ -211,4 +236,4 @@ class FakePlayerGateway:
         return self.status
 
     def events(self, device_id: str) -> Iterator[PlaybackEvent]:
-        return iter(())
+        return iter(self.event_stream)

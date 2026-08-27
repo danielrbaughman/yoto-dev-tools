@@ -16,6 +16,7 @@ from fastmcp.exceptions import ToolError
 from tests.conftest import load_fixture
 from tests.fakes.gateways import (
     FakeDeviceGateway,
+    FakeFamilyImageGateway,
     FakeIconGateway,
     FakeLibraryGateway,
     FakeMediaGateway,
@@ -27,7 +28,7 @@ from yoto.adapters.mcp.server import build_server
 from yoto.composition import build_services
 from yoto.domain.content import Card
 from yoto.domain.device import Device, DeviceDetails
-from yoto.domain.media import Icon, TranscodedAudio, TranscodedInfo
+from yoto.domain.media import FamilyImage, Icon, TranscodedAudio, TranscodedInfo
 from yoto.settings import YotoSettings
 
 
@@ -47,12 +48,16 @@ class Harness:
             ),
         )
         self.library = FakeLibraryGateway()
+        self.family_images = FakeFamilyImageGateway(
+            images=[FamilyImage(image_id="sha-1")]
+        )
         self.player = FakePlayerGateway()
         self.services.content = self.content
         self.services.media = self.media
         self.services.icons = self.icons
         self.services.devices = self.devices
         self.services.library = self.library
+        self.services.family_images = self.family_images
         self.services._player = self.player
         self.server = build_server()
 
@@ -279,3 +284,79 @@ def test_playlist_download_writes_files(harness, tmp_path):
     )
     assert again["files"] == result["files"]
     assert len(harness.media.get_calls) == 1
+
+
+def test_player_pause_resume_topics(harness):
+    assert harness.call("player_pause", device="Kitchen")["ok"] is True
+    assert harness.call("player_resume", device="Kitchen")["ok"] is True
+    assert [(topic, payload) for _, topic, payload in harness.player.sent] == [
+        ("card/pause", {}),
+        ("card/resume", {}),
+    ]
+
+
+def test_player_light_tools(harness):
+    assert harness.call("player_set_light", device="dev-1", r=1, g=2, b=3)["ok"] is True
+    assert harness.call("player_light_off", device="dev-1")["ok"] is True
+    assert [payload for _, _, payload in harness.player.sent] == [
+        {"r": 1, "g": 2, "b": 3},
+        {"r": 0, "g": 0, "b": 0},
+    ]
+
+
+def test_player_sleep_timer_validates_and_sends(harness):
+    with pytest.raises(ToolError):
+        harness.call("player_set_sleep_timer", device="dev-1", seconds=-1)
+    assert harness.call("player_set_sleep_timer", device="dev-1", seconds=90)["ok"]
+    assert harness.player.sent == [("dev-1", "sleep-timer/set", {"seconds": 90})]
+
+
+def test_group_get(harness):
+    created = harness.call("group_create", name="Faves")
+    got = harness.call("group_get", group_id=created["id"])
+    assert got["name"] == "Faves"
+
+
+def test_group_image_tools(harness, tmp_path):
+    assert harness.call("group_image_list") == {"result": [{"imageId": "sha-1"}]}
+    resolved = harness.call("group_image_url", image_id="sha-1", size="320x320")
+    assert resolved == {
+        "imageId": "sha-1",
+        "url": "https://signed.test/sha-1?w=320&h=320",
+    }
+    image = tmp_path / "family.png"
+    image.write_bytes(b"png-bytes")
+    uploaded = harness.call("group_image_upload", path=str(image))
+    assert uploaded["imageId"] == "sha-new"
+    assert harness.family_images.uploads[0]["content_type"] == "image/png"
+
+
+def test_icon_upload(harness, tmp_path):
+    icon = tmp_path / "star.png"
+    icon.write_bytes(b"png-bytes")
+    result = harness.call("icon_upload", path=str(icon))
+    assert result["mediaId"] == "icon-1"
+    assert result["ref"] == "yoto:#icon-1"
+    assert harness.icons.uploads[0]["filename"] == "star.png"
+
+
+def test_upload_cover(harness, tmp_path):
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"jpg-bytes")
+    result = harness.call("upload_cover", path=str(cover), cover_type="myo")
+    assert result == {"mediaId": "cover-1", "mediaUrl": "https://cdn.test/cover.png"}
+    assert harness.media.cover_calls[0]["cover_type"] == "myo"
+
+
+def test_playlist_create_from_folder(harness, tmp_path):
+    folder = tmp_path / "album"
+    folder.mkdir()
+    (folder / "01 Intro.mp3").write_bytes(b"audio-1")
+    (folder / "02 Outro.mp3").write_bytes(b"audio-2")
+    harness.media.last_result = TranscodedAudio(
+        transcoded_sha256="sha",
+        transcoded_info=TranscodedInfo(duration=10, file_size=100, format="aac"),
+    )
+    card = harness.call("playlist_create_from_folder", folder=str(folder), title="Mix")
+    assert card["title"] == "Mix"
+    assert [c["title"] for c in card["content"]["chapters"]] == ["Intro", "Outro"]
