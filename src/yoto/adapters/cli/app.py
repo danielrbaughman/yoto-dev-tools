@@ -22,10 +22,10 @@ app = typer.Typer(
 
 # rich_help_panel controls --help grouping/order (bare commands would always
 # list before subcommand groups).
-app.add_typer(auth_app, name="auth", rich_help_panel="Auth")
-app.add_typer(playlist_app, name="playlist", rich_help_panel="Content")
-app.add_typer(icon_app, name="icon", rich_help_panel="Content")
-app.add_typer(player_app, name="player", rich_help_panel="Players")
+app.add_typer(auth_app, name="auth")
+app.add_typer(player_app, name="player")
+app.add_typer(playlist_app, name="playlist")
+app.add_typer(icon_app, name="icon")
 
 
 def _version_callback(value: bool) -> None:
