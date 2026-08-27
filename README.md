@@ -35,8 +35,8 @@ logged-in machine with `yoto auth token`).
 
 ## MCP server
 
-`yoto mcp` serves the same capabilities as MCP tools (33 of them: playlists,
-uploads, groups, icons, players, `auth_whoami`) for Claude Code, Claude
+`yoto mcp` serves the same capabilities as MCP tools (34 of them: playlists,
+downloads, uploads, groups, icons, players, `auth_whoami`) for Claude Code, Claude
 Desktop, and any other MCP client. It reuses the CLI's credentials — run
 `yoto auth login` once (or export `YOTO_ACCESS_TOKEN`), then:
 

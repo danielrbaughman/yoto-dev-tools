@@ -1,4 +1,4 @@
-"""MYO playlist tools: CRUD, folder import, media uploads."""
+"""MYO playlist tools: CRUD, folder import, downloads, media uploads."""
 
 from pathlib import Path
 from typing import Annotated, Any
@@ -9,6 +9,7 @@ from pydantic import Field
 from yoto.adapters.mcp._common import get_services, logger, tool_errors
 from yoto.adapters.serialize import to_jsonable
 from yoto.application import content as content_uc
+from yoto.application import downloads as downloads_uc
 from yoto.application import uploads as uploads_uc
 from yoto.domain.content import CARD_JSON_EXAMPLE
 
@@ -111,6 +112,45 @@ def register(mcp: FastMCP) -> None:
             on_progress=logger.info,
         )
         return to_jsonable(card)
+
+    @mcp.tool(annotations={"idempotentHint": True})
+    @tool_errors
+    def playlist_download(
+        card_id: CardId,
+        directory: Annotated[
+            str | None,
+            Field(
+                description="Target directory on the machine running this server "
+                "(default: ./<playlist title> under the server's working directory)."
+            ),
+        ] = None,
+        cover: Annotated[bool, Field(description="Also save the cover image.")] = True,
+        icons: Annotated[
+            bool, Field(description="Also save resolvable chapter icons.")
+        ] = True,
+        overwrite: Annotated[
+            bool, Field(description="Re-download files that already exist.")
+        ] = False,
+        concurrency: Annotated[
+            int, Field(ge=1, description="Files to transfer at once.")
+        ] = downloads_uc.DEFAULT_CONCURRENCY,
+    ) -> dict[str, Any]:
+        """Download a playlist's tracks as "NN - Title.<format>" (the original
+        format Yoto stores, usually opus) plus cover, icons and card.json.
+        Existing files are skipped unless overwrite. Slow for large playlists."""
+        services = get_services()
+        result = downloads_uc.download_playlist(
+            services.content,
+            services.media,
+            card_id,
+            Path(directory) if directory else None,
+            cover=cover,
+            icons=icons,
+            overwrite=overwrite,
+            concurrency=concurrency,
+            on_progress=logger.info,
+        )
+        return to_jsonable(result)
 
     @mcp.tool
     @tool_errors

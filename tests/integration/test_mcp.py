@@ -6,6 +6,7 @@ output identical to the CLI's --json, error mapping.
 
 import asyncio
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -86,7 +87,7 @@ def harness() -> Iterator[Harness]:
 
 def test_tool_inventory_and_annotations(harness):
     tools = harness.list_tools()
-    assert len(tools) == 33
+    assert len(tools) == 34
     assert tools["playlist_list"].annotations.readOnlyHint is True
     assert tools["playlist_delete"].annotations.destructiveHint is True
     assert "trackUrl" in tools["playlist_create"].description
@@ -224,3 +225,57 @@ def test_auth_whoami_uses_static_token(harness, monkeypatch):
     harness.services.auth_gateway.userinfo = lambda token: {"name": "Dan"}
     result = harness.call("auth_whoami")
     assert result["name"] == "Dan"
+
+
+def test_playlist_download_writes_files(harness, tmp_path):
+    from yoto.domain.content import CardContent, Chapter, Track
+
+    harness.content.seed(
+        Card(
+            card_id="dl001",
+            title="Bedtime",
+            content=CardContent(
+                chapters=[
+                    Chapter(
+                        key="01",
+                        title="Moon",
+                        tracks=[
+                            Track(
+                                key="01",
+                                title="Moon",
+                                track_url="https://media.test/m?sig=1",
+                                format="opus",
+                            )
+                        ],
+                    )
+                ]
+            ),
+        )
+    )
+    harness.media.objects["https://media.test/m?sig=1"] = b"opus-bytes"
+    out = tmp_path / "out"
+    result = harness.call(
+        "playlist_download",
+        card_id="dl001",
+        directory=str(out),
+        cover=False,
+        icons=False,
+    )
+    assert result["cardId"] == "dl001"
+    assert Path(result["directory"]) == out
+    audio = [f for f in result["files"] if f["kind"] == "audio"]
+    assert len(audio) == 1 and audio[0]["bytes"] == len(b"opus-bytes")
+    assert (out / "1 - Moon.opus").exists() or any(
+        p.suffix == ".opus" for p in out.iterdir()
+    )
+    assert (out / "card.json").exists()
+    # Second run reuses the existing files rather than re-fetching them.
+    again = harness.call(
+        "playlist_download",
+        card_id="dl001",
+        directory=str(out),
+        cover=False,
+        icons=False,
+    )
+    assert again["files"] == result["files"]
+    assert len(harness.media.get_calls) == 1
