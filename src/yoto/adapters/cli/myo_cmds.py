@@ -167,6 +167,20 @@ def playlist_update(
     emit(card, json_, presenters.show_card)
 
 
+@playlist_app.command("delete")
+@verbose()
+@handle_errors
+def playlist_delete(
+    card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
+    yes: YesOpt = False,
+) -> None:
+    """Delete a playlist."""
+    if not yes:
+        typer.confirm(f"Delete card {card_id}?", abort=True, err=True)
+    content_uc.delete_card(get_services().content, card_id)
+    note(f"Deleted {card_id}.")
+
+
 @playlist_app.command("download")
 @verbose()
 @handle_errors
@@ -210,20 +224,6 @@ def playlist_download(
         on_progress=note,
     )
     emit(result, json_, presenters.show_download)
-
-
-@playlist_app.command("delete")
-@verbose()
-@handle_errors
-def playlist_delete(
-    card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
-    yes: YesOpt = False,
-) -> None:
-    """Delete a playlist."""
-    if not yes:
-        typer.confirm(f"Delete card {card_id}?", abort=True, err=True)
-    content_uc.delete_card(get_services().content, card_id)
-    note(f"Deleted {card_id}.")
 
 
 @upload_app.command("audio")
