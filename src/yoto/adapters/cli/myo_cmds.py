@@ -206,6 +206,10 @@ def playlist_download(
         bool,
         typer.Option("--overwrite", help="Re-download files that already exist."),
     ] = False,
+    concurrency: Annotated[
+        int,
+        typer.Option("--concurrency", "-j", min=1, help="Files to transfer at once."),
+    ] = downloads_uc.DEFAULT_CONCURRENCY,
     json_: JsonOpt = False,
 ) -> None:
     """Download a playlist.
@@ -223,6 +227,7 @@ def playlist_download(
             cover=cover,
             icons=icons,
             overwrite=overwrite,
+            concurrency=concurrency,
             on_progress=bar.message,
             on_transfer=lambda t: bar.update(
                 t.name, t.index, t.total, t.written, t.size, t.done

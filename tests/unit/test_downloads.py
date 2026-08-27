@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -17,7 +18,7 @@ from yoto.domain.content import (
     Track,
     TrackDisplay,
 )
-from yoto.domain.errors import InputError
+from yoto.domain.errors import InputError, NotFoundError
 
 
 class ResolvingContentGateway(InMemoryContentGateway):
@@ -140,3 +141,20 @@ def test_safe_filename_and_extension_helpers():
     assert extension_for("OPUS", "https://x/y") == "opus"
     assert extension_for(None, "https://x/y.mp3?sig=1") == "mp3"
     assert extension_for(None, "https://x/y") == "bin"
+
+
+def test_failed_transfer_aborts_and_removes_partials(gateways, tmp_path):
+    content, media = gateways
+    del media.objects["https://media.test/s?sig=2"]  # second track 404s
+    with pytest.raises(NotFoundError):
+        download_playlist(content, media, "abc12", tmp_path / "out", concurrency=2)
+    assert not list((tmp_path / "out").rglob("*.part"))
+
+
+def test_serial_download_matches_concurrent(gateways, tmp_path):
+    content, media = gateways
+    serial = download_playlist(content, media, "abc12", tmp_path / "a", concurrency=1)
+    parallel = download_playlist(content, media, "abc12", tmp_path / "b", concurrency=8)
+    assert [(f.kind, Path(f.path).name, f.bytes) for f in serial.files] == [
+        (f.kind, Path(f.path).name, f.bytes) for f in parallel.files
+    ]

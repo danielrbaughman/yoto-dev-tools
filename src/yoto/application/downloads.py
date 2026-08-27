@@ -10,6 +10,7 @@ fetch so it stays free of expiring signatures.
 import json
 import re
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -21,6 +22,7 @@ from yoto.domain.errors import InputError
 Progress = Callable[[str], None]
 
 CARD_FILENAME = "card.json"
+DEFAULT_CONCURRENCY = 4
 ICONS_DIRNAME = "icons"
 _FORMAT_EXTENSIONS = {"opus": "opus", "mp3": "mp3", "aac": "aac", "wav": "wav"}
 
@@ -143,14 +145,18 @@ def download_playlist(
     cover: bool = True,
     icons: bool = True,
     overwrite: bool = False,
+    concurrency: int = DEFAULT_CONCURRENCY,
     on_progress: Progress = _noop_progress,
     on_transfer: Transfer = _noop_transfer,
 ) -> DownloadResult:
     """Download every track of a playlist as ``NN - Title.ext`` files.
 
-    ``on_progress`` receives one human line per file; ``on_transfer`` receives
-    byte-level ``TransferProgress`` updates (for progress bars).
+    Up to ``concurrency`` files transfer at once. ``on_progress`` receives one
+    human line per file and ``on_transfer`` byte-level ``TransferProgress``
+    updates (for progress bars); both may be called from worker threads.
     """
+    if concurrency < 1:
+        raise InputError("concurrency must be at least 1")
     card = content.get_card(card_id)
     playable = content.get_card(card_id, playable=True)
     directory = directory or Path(safe_filename(card.title or card_id, card_id))
@@ -183,8 +189,8 @@ def download_playlist(
         )
         line = f"[{index}/{len(tracks)}] {dest.name}"
         jobs.append((line, _Job(kind="audio", url=url, path=str(dest), title=title)))
-    files: list[DownloadedFile] = []
-    for index, (line, job) in enumerate(jobs, start=1):
+
+    def fetch(index: int, line: str, job: _Job) -> DownloadedFile:
         on_progress(line)
         size = _write(
             media,
@@ -195,9 +201,24 @@ def download_playlist(
             on_progress=on_progress,
             on_transfer=on_transfer,
         )
-        files.append(
-            DownloadedFile(kind=job.kind, path=job.path, bytes=size, title=job.title)
-        )
+        return DownloadedFile(kind=job.kind, path=job.path, bytes=size, title=job.title)
+
+    files: list[DownloadedFile] = []
+    with ThreadPoolExecutor(max_workers=min(concurrency, len(jobs) or 1)) as pool:
+        futures = [
+            pool.submit(fetch, index, line, job)
+            for index, (line, job) in enumerate(jobs, start=1)
+        ]
+        try:
+            # Collect in plan order so result.files is deterministic.
+            files.extend(future.result() for future in futures)
+        except BaseException:
+            for future in futures:
+                future.cancel()
+            pool.shutdown(wait=True, cancel_futures=True)
+            for _, job in jobs:
+                Path(job.path + ".part").unlink(missing_ok=True)
+            raise
 
     card_path = directory / CARD_FILENAME
     card_path.write_text(

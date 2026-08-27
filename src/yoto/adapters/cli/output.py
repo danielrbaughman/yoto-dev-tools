@@ -9,6 +9,7 @@
 
 import json
 import sys
+import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -93,9 +94,9 @@ def status(initial: str) -> Iterator[Progress]:
 class TransferBar:
     """Progress bars for multi-file transfers (TTY only; no-op otherwise).
 
-    ``message(line)`` prints a persistent line above the bars;
-    ``update(...)`` drives an overall "N/M files" bar plus a byte bar for the
-    file currently transferring.
+    ``message(line)`` prints a persistent line above the bars; ``update(...)``
+    drives an overall "N/M files" bar plus one byte bar per file currently in
+    flight. Safe to call from worker threads (Rich serialises rendering).
     """
 
     def __init__(
@@ -108,8 +109,9 @@ class TransferBar:
         self._files = files
         self._description = description
         self._overall_task: TaskID | None = None
-        self._file_task: TaskID | None = None
-        self._current: str | None = None
+        self._file_tasks: dict[str, TaskID] = {}
+        self._completed = 0
+        self._lock = threading.Lock()
 
     def message(self, line: str) -> None:
         note(line)
@@ -125,17 +127,20 @@ class TransferBar:
     ) -> None:
         if self._overall is None or self._files is None:
             return
-        if self._overall_task is None:
-            self._overall_task = self._overall.add_task(self._description, total=total)
-        if name != self._current:
-            self._current = name
-            if self._file_task is not None:
-                self._files.remove_task(self._file_task)
-            self._file_task = self._files.add_task(name, total=size)
-        assert self._file_task is not None
-        self._files.update(self._file_task, completed=written, total=size)
-        if done:
-            self._overall.update(self._overall_task, completed=index)
+        with self._lock:
+            if self._overall_task is None:
+                self._overall_task = self._overall.add_task(
+                    self._description, total=total
+                )
+            task = self._file_tasks.get(name)
+            if task is None:
+                task = self._file_tasks[name] = self._files.add_task(name, total=size)
+            self._files.update(task, completed=written, total=size)
+            if done:
+                self._files.remove_task(task)
+                del self._file_tasks[name]
+                self._completed += 1
+                self._overall.update(self._overall_task, completed=self._completed)
 
 
 @contextmanager
