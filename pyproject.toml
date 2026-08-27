@@ -32,6 +32,7 @@ dev = [
     "ty>=0.0.74",
     "pytest>=8.4",
     "respx>=0.23.1",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
@@ -41,3 +42,12 @@ markers = [
     "integration: adapter tests against respx/fake paho (offline, fast)",
     "live: hits the real Yoto API/MQTT; needs YOTO_LIVE=1 and real credentials",
 ]
+
+[tool.coverage.run]
+source = ["src/yoto"]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+fail_under = 88

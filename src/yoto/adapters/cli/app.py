@@ -66,7 +66,7 @@ def _root(
     _configure_logging()
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover — process entry point; tests use CliRunner
     try:
         app()
     except BrokenPipeError:
@@ -76,5 +76,5 @@ def main() -> None:
         sys.exit(0)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

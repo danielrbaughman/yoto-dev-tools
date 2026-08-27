@@ -4,7 +4,7 @@ import time
 import webbrowser
 
 
-class SystemClock:
+class SystemClock:  # pragma: no cover — thin stdlib wrapper; tests use FakeClock
     def now(self) -> float:
         return time.time()
 
@@ -12,7 +12,7 @@ class SystemClock:
         time.sleep(seconds)
 
 
-class WebBrowserOpener:
+class WebBrowserOpener:  # pragma: no cover — thin stdlib wrapper
     def open(self, url: str) -> bool:
         try:
             return webbrowser.open(url)

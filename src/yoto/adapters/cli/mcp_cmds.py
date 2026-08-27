@@ -10,7 +10,7 @@ from yoto.adapters.cli.params import verbose
 
 @verbose()
 @handle_errors
-def mcp(
+def mcp(  # pragma: no cover — blocks serving; the server is tested in-memory
     http: Annotated[
         bool,
         typer.Option(
