@@ -193,7 +193,7 @@ def playlist_download(
     ] = False,
     json_: JsonOpt = False,
 ) -> None:
-    """Download a playlist's audio (plus cover, icons, card.json) to a folder.
+    """Download a playlist.
 
     Tracks are saved as "NN - Title.<format>" in the original format Yoto
     stores (usually opus). Existing files are skipped unless --overwrite.
