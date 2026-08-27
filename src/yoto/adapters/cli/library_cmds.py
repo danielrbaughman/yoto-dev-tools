@@ -15,7 +15,7 @@ from yoto.application import library as library_uc
 # group_app is mounted under `yoto playlist` (see playlist_cmds).
 group_app = typer.Typer(help="Playlist groups.")
 
-images_app = typer.Typer(help="Family images (usable as group images).")
+images_app = typer.Typer(help="Group images.")
 group_app.add_typer(images_app, name="images")
 
 GroupIdArg = Annotated[str, typer.Argument(help="Group id.")]
@@ -110,7 +110,7 @@ def images_list(
     limit: Annotated[int | None, typer.Option(help="Max images to return.")] = None,
     json_: JsonOpt = False,
 ) -> None:
-    """List uploaded family images."""
+    """List all group images."""
     images = library_uc.list_family_images(get_services().family_images, limit=limit)
     emit(images, json_, presenters.show_family_images)
 
@@ -122,7 +122,7 @@ def images_upload(
     file: Annotated[Path, typer.Argument(help="JPEG/PNG/GIF, max 8 MB.")],
     json_: JsonOpt = False,
 ) -> None:
-    """Upload a family image (deduplicated by content hash)."""
+    """Upload a group image."""
     image = library_uc.upload_family_image(get_services().family_images, file)
     emit(
         image,
@@ -141,7 +141,7 @@ def images_get(
     ] = "640x480",
     json_: JsonOpt = False,
 ) -> None:
-    """Print a signed URL for a family image (valid ~7 days)."""
+    """Get url for an image."""
     url = library_uc.resolve_family_image_url(
         get_services().family_images, image_id, size=size
     )
