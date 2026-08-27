@@ -47,18 +47,18 @@ logged-in machine with `yoto auth token`).
 ```
 yoto
 ├── auth      login | logout | whoami | token [--refresh]
-├── playlist  list | get | create | update | delete
-│             create --file card.json|-  from a JSON card (schema in --help), or:
-│             create --file DIR [--title] [--cover IMG] [--icon ID]  one chapter per audio file
-│             upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
-│             upload cover FILE [--type]
-│             group list|get|create|update|delete    family-library groups
-│             group images list|upload|get           images usable by groups
-├── icon      list public|private|all | search public|private|all QUERY | upload FILE
-└── player    list | status DEVICE | play DEVICE CARD_ID [--chapter K] [--track K]
+├── player    list | status DEVICE | play DEVICE CARD_ID [--chapter K] [--track K]
 │             pause|resume|stop DEVICE | volume DEVICE [0-100] | watch DEVICE   (MQTT)
 │             light DEVICE R G B|--hex|--off | sleep DEVICE SECONDS|--off
 │             config get DEVICE | config set DEVICE KEY=VALUE... [--name]   (REST)
+└── playlist  list | get | create | update | delete
+              create --file card.json|-  from a JSON card (schema in --help), or:
+              create --file DIR [--title] [--cover IMG] [--icon ID]  one chapter per audio file
+              upload audio FILE...       → yoto:# trackUrl (dedup + transcode poll)
+              upload cover FILE [--type]
+              group list|get|create|update|delete    family-library groups
+              group images list|upload|get           images usable by groups
+              icon list|search public|private|all | icon upload FILE
 ```
 
 - `DEVICE` is a device id or a unique device name (case-insensitive).

@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 import typer
 
-from yoto.adapters.cli import library_cmds, presenters
+from yoto.adapters.cli import icon_cmds, library_cmds, presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
 from yoto.adapters.cli.output import emit, note, print_json
@@ -42,7 +42,7 @@ The JSON card schema (only "title" and one chapter/track are required; unknown f
       {
         "key": "01",
         "title": "Chapter One",
-        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto icon`
+        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto playlist icon`
         "tracks": [                          // 1+ tracks per chapter
           {
             "key": "01",
@@ -119,6 +119,7 @@ upload_app = typer.Typer(help="Upload media for playlists.")
 playlist_app.add_typer(upload_app, name="upload")
 
 playlist_app.add_typer(library_cmds.group_app, name="group")
+playlist_app.add_typer(icon_cmds.icon_app, name="icon")
 
 
 @playlist_app.command(
@@ -147,7 +148,7 @@ def playlist_create(
     icon: Annotated[
         str | None,
         typer.Option(
-            help="Directory mode: icon mediaId for every chapter (see `yoto icon`)."
+            help="Directory mode: icon mediaId for every chapter (see `yoto playlist icon`)."
         ),
     ] = None,
     loudnorm: Annotated[

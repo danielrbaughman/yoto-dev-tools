@@ -260,7 +260,9 @@ def test_icons_search_filters_public_library(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/yoto").respond(
         json=load_fixture("icons_public.json")
     )
-    result = runner.invoke(app, ["icon", "search", "public", "sky", "--json"])
+    result = runner.invoke(
+        app, ["playlist", "icon", "search", "public", "sky", "--json"]
+    )
     assert result.exit_code == 0
     icons = json.loads(result.stdout)
     assert {icon["title"] for icon in icons} == {"Moon", "Star"}
@@ -314,10 +316,10 @@ def test_icon_list_public_and_private_subcommands(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
         json={"displayIcons": [{"mediaId": "mine-1"}]}
     )
-    public = runner.invoke(app, ["icon", "list", "public", "--json"])
+    public = runner.invoke(app, ["playlist", "icon", "list", "public", "--json"])
     assert public.exit_code == 0
     assert len(json.loads(public.stdout)) == 3
-    private = runner.invoke(app, ["icon", "list", "private", "--json"])
+    private = runner.invoke(app, ["playlist", "icon", "list", "private", "--json"])
     assert private.exit_code == 0
     assert json.loads(private.stdout)[0]["mediaId"] == "mine-1"
 
@@ -330,7 +332,7 @@ def test_icon_list_all_combines_both(respx_mock, logged_in):
     respx_mock.get(f"{API}/media/displayIcons/user/me").respond(
         json={"displayIcons": [{"mediaId": "mine-1"}]}
     )
-    result = runner.invoke(app, ["icon", "list", "all", "--json"])
+    result = runner.invoke(app, ["playlist", "icon", "list", "all", "--json"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)
     assert len(data) == 4

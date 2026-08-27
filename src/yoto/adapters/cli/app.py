@@ -9,7 +9,6 @@ import typer
 
 from yoto import __version__
 from yoto.adapters.cli.auth_cmds import auth_app
-from yoto.adapters.cli.icon_cmds import icon_app
 from yoto.adapters.cli.player_cmds import player_app
 from yoto.adapters.cli.playlist_cmds import playlist_app
 
@@ -20,12 +19,9 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 
-# rich_help_panel controls --help grouping/order (bare commands would always
-# list before subcommand groups).
 app.add_typer(auth_app, name="auth")
 app.add_typer(player_app, name="player")
 app.add_typer(playlist_app, name="playlist")
-app.add_typer(icon_app, name="icon")
 
 
 def _version_callback(value: bool) -> None:
