@@ -394,3 +394,13 @@ def test_download_end_to_end(respx_mock, logged_in, tmp_path):
     ]
     assert (tmp_path / "bed" / "01 - The Moon.aac").read_bytes() == b"moon"
     assert "01 - The Moon.aac" in result.stderr  # progress on stderr
+
+
+@respx.mock(assert_all_called=True)
+def test_human_output_does_not_parse_markup_in_api_strings(respx_mock, logged_in):
+    card = load_fixture("card_full.json")
+    card["title"] = "[bold]Not markup[/bold] [1/2]"
+    respx_mock.get(f"{API}/content/abc12").respond(json={"card": card})
+    result = runner.invoke(app, ["myo", "playlist", "get", "abc12"])
+    assert result.exit_code == 0, result.stderr
+    assert "[bold]Not markup[/bold] [1/2]" in result.stdout

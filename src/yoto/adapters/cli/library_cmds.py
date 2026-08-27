@@ -8,7 +8,7 @@ import typer
 from yoto.adapters.cli import presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, note
+from yoto.adapters.cli.output import emit, success
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import library as library_uc
 
@@ -100,7 +100,7 @@ def group_delete(group_id: GroupIdArg, yes: YesOpt = False) -> None:
     if not yes:
         typer.confirm(f"Delete group {group_id}?", abort=True, err=True)
     library_uc.delete_group(get_services().library, group_id)
-    note(f"Deleted {group_id}.")
+    success(f"Deleted {group_id}.")
 
 
 @images_app.command("list")

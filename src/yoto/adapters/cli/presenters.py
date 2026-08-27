@@ -1,9 +1,16 @@
-"""Human-readable renderers (Rich tables) for domain entities."""
+"""Human-readable renderers (Rich tables) for domain entities.
+
+API-supplied strings are always wrapped in ``Text`` so a stray ``[`` in a
+title is rendered literally rather than parsed as Rich markup.
+"""
 
 from pathlib import Path
 from typing import Any
 
+from rich import box
+from rich.filesize import decimal as fmt_bytes
 from rich.table import Table
+from rich.text import Text
 
 from yoto.adapters.cli.output import stdout_console
 from yoto.application.downloads import DownloadResult
@@ -13,6 +20,8 @@ from yoto.domain.device import Device, DeviceDetails
 from yoto.domain.library import LibraryGroup
 from yoto.domain.media import FamilyImage, Icon, TranscodedAudio
 from yoto.domain.player import PlaybackEvent, PlayerStatus
+
+_STATUS_STYLES = {"playing": "ok", "paused": "warn"}
 
 
 def fmt_duration(seconds: float | None) -> str:
@@ -26,163 +35,245 @@ def fmt_duration(seconds: float | None) -> str:
     return f"{minutes}:{secs:02d}"
 
 
-def _table(*columns: str) -> Table:
-    table = Table(show_edge=False, pad_edge=False)
+def _cell(value: Any, style: str = "") -> Text:
+    """Markup-safe table cell; None renders as empty."""
+    return Text("" if value is None else str(value), style=style)
+
+
+def _table(*columns: str | dict[str, Any]) -> Table:
+    """Columns are names, or dicts of ``Table.add_column`` kwargs."""
+    table = Table(
+        box=box.SIMPLE_HEAD, header_style="bold", show_edge=False, pad_edge=False
+    )
     for column in columns:
-        table.add_column(column)
+        if isinstance(column, str):
+            table.add_column(column)
+        else:
+            table.add_column(**column)
     return table
 
 
+_ID = {"header": "ID", "style": "id", "no_wrap": True}
+_NUM = {"justify": "right"}
+
+
+def _kv(pairs: list[tuple[str, Any]]) -> None:
+    """Aligned ``label  value`` block; falsy values are skipped."""
+    grid = Table.grid(padding=(0, 2))
+    grid.add_column(style="label")
+    grid.add_column()
+    for label, value in pairs:
+        if value not in (None, ""):
+            grid.add_row(label, _cell(value))
+    if grid.row_count:
+        stdout_console.print(grid)
+
+
+def _heading(title: str | None, ident: str | None) -> None:
+    parts: list[Any] = []
+    if title:
+        parts.append((title, "title"))
+    if ident:
+        parts.append((f" ({ident})" if title else ident, "id"))
+    stdout_console.print(Text.assemble(*parts))
+
+
+def _footer(count: int, noun: str) -> None:
+    if count == 0:
+        stdout_console.print(f"no {noun}s", style="empty", highlight=False)
+    else:
+        stdout_console.print(f"{count} {noun}(s)", style="muted", highlight=False)
+
+
 def show_user(info: UserInfo) -> None:
-    for label, value in [
-        ("user", info.sub),
-        ("name", info.name),
-        ("email", info.email),
-        ("scopes", info.scope),
-    ]:
-        if value:
-            stdout_console.print(f"{label}: {value}", highlight=False)
+    _kv(
+        [
+            ("user", info.sub),
+            ("name", info.name),
+            ("email", info.email),
+            ("scopes", info.scope),
+        ]
+    )
 
 
 def show_cards(cards: list[Card]) -> None:
-    table = _table("ID", "Title", "Category", "Updated")
-    for card in cards:
-        category = card.metadata.category if card.metadata else None
-        table.add_row(card.card_id, card.title, category, card.updated_at)
-    stdout_console.print(table)
-    stdout_console.print(f"{len(cards)} card(s)", style="dim")
+    if cards:
+        table = _table(_ID, "Title", "Category", "Updated")
+        for card in cards:
+            category = card.metadata.category if card.metadata else None
+            table.add_row(
+                _cell(card.card_id),
+                _cell(card.title),
+                _cell(category),
+                _cell(card.updated_at, "muted"),
+            )
+        stdout_console.print(table)
+    _footer(len(cards), "card")
 
 
 def show_card(card: Card) -> None:
-    stdout_console.print(f"[bold]{card.title}[/bold] ({card.card_id})")
+    _heading(card.title, card.card_id)
     if card.metadata:
         meta = card.metadata
-        for label, value in [
-            ("category", meta.category),
-            ("author", meta.author),
-            ("description", meta.description),
-        ]:
-            if value:
-                stdout_console.print(f"{label}: {value}", highlight=False)
-        if meta.media and meta.media.duration:
-            stdout_console.print(f"duration: {fmt_duration(meta.media.duration)}")
+        duration = meta.media.duration if meta.media else None
+        _kv(
+            [
+                ("category", meta.category),
+                ("author", meta.author),
+                ("description", meta.description),
+                ("duration", fmt_duration(duration) if duration else None),
+            ]
+        )
     chapters = card.content.chapters if card.content else []
     if not chapters:
-        stdout_console.print("(no chapters — try without --json or fetch by id)")
+        stdout_console.print(
+            "(no chapters — try without --json or fetch by id)",
+            style="empty",
+            highlight=False,
+        )
         return
-    table = _table("Chapter", "Title", "Tracks", "Duration")
+    table = _table(
+        {"header": "Chapter", "style": "id", "no_wrap": True},
+        "Title",
+        {"header": "Tracks", **_NUM},
+        {"header": "Duration", **_NUM},
+    )
     for chapter in chapters:
         duration = chapter.duration or sum(
             track.duration or 0 for track in chapter.tracks
         )
         table.add_row(
-            chapter.key,
-            chapter.title,
-            str(len(chapter.tracks)),
-            fmt_duration(duration),
+            _cell(chapter.key),
+            _cell(chapter.title),
+            _cell(len(chapter.tracks)),
+            _cell(fmt_duration(duration)),
         )
     stdout_console.print(table)
 
 
 def show_upload(result: TranscodedAudio) -> None:
     info = result.transcoded_info
-    line = f"uploaded: {result.track_url}"
+    line = Text.assemble(("uploaded: ", "label"), (result.track_url or "", "id"))
     if info and info.duration is not None:
-        line += f" ({fmt_duration(info.duration)})"
-    stdout_console.print(line, highlight=False)
+        line.append(f" ({fmt_duration(info.duration)})", style="muted")
+    stdout_console.print(line)
 
 
 def show_download(result: DownloadResult) -> None:
     stdout_console.print(
-        f"[bold]{result.title}[/bold] ({result.card_id}) → {result.directory}"
+        Text.assemble(
+            (result.title or "", "title"),
+            (f" ({result.card_id})", "id"),
+            " → ",
+            (result.directory, "bold"),
+        )
     )
-    table = _table("Kind", "File", "Bytes")
+    table = _table("Kind", "File", {"header": "Size", **_NUM})
     for file in result.files:
-        table.add_row(file.kind, Path(file.path).name, str(file.bytes))
+        table.add_row(
+            _cell(file.kind, "muted"),
+            _cell(Path(file.path).name),
+            _cell(fmt_bytes(file.bytes)),
+        )
     stdout_console.print(table)
     audio = sum(1 for file in result.files if file.kind == "audio")
-    line = f"{audio} track(s) downloaded"
+    line = Text(f"{audio} track(s) downloaded", style="muted")
     if result.skipped:
-        line += f", {len(result.skipped)} skipped (no playable URL)"
-    stdout_console.print(line, style="dim")
+        line.append(f", {len(result.skipped)} skipped (no playable URL)", style="warn")
+    stdout_console.print(line)
 
 
 def show_icons(icons: list[Icon]) -> None:
-    table = _table("Media ID", "Title", "Tags")
-    for icon in icons:
-        tags = ", ".join(icon.public_tags or [])
-        table.add_row(icon.media_id, icon.title, tags)
-    stdout_console.print(table)
-    stdout_console.print(f"{len(icons)} icon(s)", style="dim")
+    if icons:
+        table = _table({**_ID, "header": "Media ID"}, "Title", "Tags")
+        for icon in icons:
+            tags = ", ".join(icon.public_tags or [])
+            table.add_row(_cell(icon.media_id), _cell(icon.title), _cell(tags, "muted"))
+        stdout_console.print(table)
+    _footer(len(icons), "icon")
 
 
 def show_devices(devices: list[Device]) -> None:
-    table = _table("ID", "Name", "Online", "Type")
+    if not devices:
+        _footer(0, "player")
+        return
+    table = _table(_ID, "Name", "Online", "Type")
     for device in devices:
-        online = {True: "yes", False: "no"}.get(device.online, "?")
-        table.add_row(device.device_id, device.name, online, device.device_type)
+        online = {True: Text("yes", "ok"), False: Text("no", "muted")}.get(
+            device.online, Text("?", "muted")
+        )
+        table.add_row(
+            _cell(device.device_id),
+            _cell(device.name),
+            online,
+            _cell(device.device_type, "muted"),
+        )
     stdout_console.print(table)
+
+
+def _kv_from_mapping(mapping: dict[str, Any]) -> None:
+    _kv([(key, mapping[key]) for key in sorted(mapping)])
 
 
 def show_device_details(details: DeviceDetails) -> None:
     # The live config endpoint omits `name`; fall back to the id alone.
-    if details.name:
-        stdout_console.print(f"[bold]{details.name}[/bold] ({details.device_id})")
-    else:
-        stdout_console.print(f"[bold]{details.device_id}[/bold]")
-    table = _table("Key", "Value")
-    for key in sorted(details.config):
-        table.add_row(key, str(details.config[key]))
-    stdout_console.print(table)
+    _heading(details.name, details.device_id)
+    _kv_from_mapping(details.config)
 
 
 def show_status(status: PlayerStatus) -> None:
-    dumped = status.model_dump(by_alias=True, exclude_none=True)
-    table = _table("Key", "Value")
-    for key in sorted(dumped):
-        table.add_row(key, str(dumped[key]))
-    stdout_console.print(table)
+    _kv_from_mapping(status.model_dump(by_alias=True, exclude_none=True))
 
 
-def event_line(event: PlaybackEvent) -> str:
+def event_line(event: PlaybackEvent) -> Text:
     position = fmt_duration(event.position) or "-"
     length = fmt_duration(event.track_length) or "-"
     track = " / ".join(
         part for part in [event.chapter_title, event.track_title] if part
     )
-    return (
-        f"{event.playback_status or '?':<8} {event.card_id or '-':<8} "
-        f"{position}/{length}  vol={event.volume}  {track}"
+    state = event.playback_status or "?"
+    return Text.assemble(
+        (f"{state:<8} ", _STATUS_STYLES.get(state, "muted")),
+        (f"{event.card_id or '-':<8} ", "id"),
+        f"{position}/{length}  ",
+        (f"vol={event.volume}  ", "muted"),
+        track,
     )
 
 
 def show_groups(groups: list[LibraryGroup]) -> None:
-    table = _table("ID", "Name", "Items")
-    for group in groups:
-        count = len(group.items) if group.items is not None else 0
-        table.add_row(group.id, group.name, str(count))
-    stdout_console.print(table)
+    if groups:
+        table = _table(_ID, "Name", {"header": "Items", **_NUM})
+        for group in groups:
+            count = len(group.items) if group.items is not None else 0
+            table.add_row(_cell(group.id), _cell(group.name), _cell(count))
+        stdout_console.print(table)
+    _footer(len(groups), "group")
 
 
 def show_group(group: LibraryGroup) -> None:
-    stdout_console.print(f"[bold]{group.name}[/bold] ({group.id})")
-    table = _table("Content ID", "Title")
+    _heading(group.name, group.id)
+    table = _table({**_ID, "header": "Content ID"}, "Title")
     titles: dict[str, str | None] = {
         card.card_id: card.title for card in group.cards or [] if card.card_id
     }
     for item in group.items or []:
         content_id = item.content_id or "?"
-        table.add_row(content_id, titles.get(content_id))
-    stdout_console.print(table)
+        table.add_row(_cell(content_id), _cell(titles.get(content_id)))
+    if table.row_count:
+        stdout_console.print(table)
+    else:
+        stdout_console.print("no items", style="empty", highlight=False)
 
 
 def show_family_images(images: list[FamilyImage]) -> None:
-    table = _table("Image ID", "URL")
-    for image in images:
-        table.add_row(image.image_id, image.url)
-    stdout_console.print(table)
+    if images:
+        table = _table({**_ID, "header": "Image ID"}, "URL")
+        for image in images:
+            table.add_row(_cell(image.image_id), _cell(image.url))
+        stdout_console.print(table)
+    _footer(len(images), "image")
 
 
 def show_kv(pairs: dict[str, Any]) -> None:
-    for key, value in pairs.items():
-        stdout_console.print(f"{key}: {value}", highlight=False)
+    _kv(list(pairs.items()))

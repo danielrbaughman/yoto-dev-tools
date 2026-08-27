@@ -9,7 +9,13 @@ import typer
 from yoto.adapters.cli import presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, note, print_json_line, stdout_console
+from yoto.adapters.cli.output import (
+    emit,
+    print_json_line,
+    stdout_console,
+    success,
+    warn,
+)
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import devices as devices_uc
 from yoto.application import player as player_uc
@@ -37,11 +43,11 @@ def connected_player(ref: str) -> Iterator[tuple[PlayerGateway, str]]:
 
 def _report_ack(ack: CommandAck, json_mode: bool, action: str) -> None:
     if json_mode:
-        emit(ack, True, lambda _: None)
+        emit(ack, True)
     elif ack.ok:
-        note(f"{action}: ok")
+        success(f"{action}: ok")
     else:
-        note(f"{action}: player reported FAIL")
+        warn(f"{action}: player reported FAIL")
 
 
 @player_app.command("list")
@@ -169,7 +175,7 @@ def watch(device: DeviceArg, json_: JsonOpt = False) -> None:
             if json_:
                 print_json_line(event)
             else:
-                stdout_console.print(presenters.event_line(event), highlight=False)
+                stdout_console.print(presenters.event_line(event))
 
 
 @player_app.command()
@@ -264,5 +270,5 @@ def config_set(
     details = devices_uc.set_device_config(
         get_services().devices, device, updates, name=name
     )
-    note(f"Updated {', '.join(updates)}.")
+    success(f"Updated {', '.join(updates)}.")
     emit(details, json_, presenters.show_device_details)

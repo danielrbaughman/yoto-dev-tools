@@ -10,7 +10,7 @@ import typer
 from yoto.adapters.cli import icon_cmds, library_cmds, presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, note, print_json
+from yoto.adapters.cli.output import emit, print_json, status, success
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import content as content_uc
 from yoto.application import downloads as downloads_uc
@@ -128,17 +128,18 @@ def playlist_create(
     """Create a playlist."""
     services = get_services()
     if file != "-" and Path(file).is_dir():
-        card = uploads_uc.create_playlist_from_folder(
-            services.content,
-            services.media,
-            services.clock,
-            Path(file),
-            title=title,
-            cover=cover,
-            icon_media_id=icon,
-            loudnorm=loudnorm,
-            on_progress=note,
-        )
+        with status("Uploading…") as progress:
+            card = uploads_uc.create_playlist_from_folder(
+                services.content,
+                services.media,
+                services.clock,
+                Path(file),
+                title=title,
+                cover=cover,
+                icon_media_id=icon,
+                loudnorm=loudnorm,
+                on_progress=progress,
+            )
     else:
         if title is not None or cover is not None or icon is not None or loudnorm:
             raise InputError(
@@ -178,7 +179,7 @@ def playlist_delete(
     if not yes:
         typer.confirm(f"Delete card {card_id}?", abort=True, err=True)
     content_uc.delete_card(get_services().content, card_id)
-    note(f"Deleted {card_id}.")
+    success(f"Deleted {card_id}.")
 
 
 @playlist_app.command("download")
@@ -213,16 +214,17 @@ def playlist_download(
     stores (usually opus). Existing files are skipped unless --overwrite.
     """
     services = get_services()
-    result = downloads_uc.download_playlist(
-        services.content,
-        services.media,
-        card_id,
-        dest,
-        cover=cover,
-        icons=icons,
-        overwrite=overwrite,
-        on_progress=note,
-    )
+    with status("Downloading…") as progress:
+        result = downloads_uc.download_playlist(
+            services.content,
+            services.media,
+            card_id,
+            dest,
+            cover=cover,
+            icons=icons,
+            overwrite=overwrite,
+            on_progress=progress,
+        )
     emit(result, json_, presenters.show_download)
 
 
@@ -242,9 +244,14 @@ def upload_audio(
     services = get_services()
     results = []
     for path in files:
-        result = uploads_uc.upload_audio(
-            services.media, services.clock, path, loudnorm=loudnorm, on_progress=note
-        )
+        with status(f"Uploading {path.name}…") as progress:
+            result = uploads_uc.upload_audio(
+                services.media,
+                services.clock,
+                path,
+                loudnorm=loudnorm,
+                on_progress=progress,
+            )
         results.append({"file": str(path), **result.to_api()})
         if not json_:
             presenters.show_upload(result)

@@ -8,7 +8,7 @@ import typer
 from yoto.adapters.cli import presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, note
+from yoto.adapters.cli.output import emit, warn
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import icons as icons_uc
 
@@ -100,7 +100,7 @@ def icon_upload(
         get_services().icons, file, filename=name, autoconvert=autoconvert
     )
     if autoconvert and not used_autoconvert:
-        note("Animated GIF detected — uploaded without conversion.")
+        warn("Animated GIF detected — uploaded without conversion.")
     emit(
         icon,
         json_,

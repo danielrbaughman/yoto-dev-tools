@@ -7,7 +7,7 @@ import typer
 from yoto.adapters.cli import presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, note
+from yoto.adapters.cli.output import emit, note, success
 from yoto.adapters.cli.params import JsonOpt, verbose
 from yoto.application import auth as auth_app_layer
 from yoto.composition import build_services
@@ -44,7 +44,7 @@ def login(
         services = build_services(services.settings.model_copy(update=overrides))
     flow = services.login_flow(notify=note)
     info = flow.run(open_browser=not no_browser)
-    note(f"Logged in as {info.sub or 'unknown user'}.")
+    success(f"Logged in as {info.sub or 'unknown user'}.")
 
 
 @auth_app.command()
@@ -54,7 +54,7 @@ def logout() -> None:
     """Log out (forget the stored tokens)."""
     services = get_services()
     auth_app_layer.logout(services.token_store)
-    note("Logged out.")
+    success("Logged out.")
 
 
 @auth_app.command()

@@ -21,6 +21,7 @@ from typing import Any
 
 import typer
 
+from yoto.adapters.cli.output import error_line
 from yoto.domain.errors import (
     ApiValidationError,
     AuthError,
@@ -77,7 +78,12 @@ def report_error(error: YotoError, *, json_mode: bool) -> None:
         json.dump(payload, sys.stderr)
         sys.stderr.write("\n")
     else:
-        sys.stderr.write(f"error: {error.message}\n")
+        hint = (
+            "Run `yoto auth login` to sign in."
+            if isinstance(error, AuthError)
+            else None
+        )
+        error_line(error.message, hint)
 
 
 def handle_errors(func: Callable[..., Any]) -> Callable[..., Any]:

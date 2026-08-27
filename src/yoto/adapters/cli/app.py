@@ -6,11 +6,13 @@ import sys
 from typing import Annotated
 
 import typer
+from rich.logging import RichHandler
 
 from yoto import __version__
 from yoto.adapters.cli.auth_cmds import auth_app
 from yoto.adapters.cli.mcp_cmds import mcp
 from yoto.adapters.cli.myo_cmds import myo_app
+from yoto.adapters.cli.output import stderr_console, stdout_console
 from yoto.adapters.cli.player_cmds import player_app
 
 app = typer.Typer(
@@ -28,7 +30,7 @@ app.command("mcp")(mcp)
 
 def _version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"yoto {__version__}")
+        stdout_console.print(f"yoto {__version__}", highlight=False)
         raise typer.Exit()
 
 
@@ -36,7 +38,14 @@ def _configure_logging() -> None:
     """typer-verbose only flips levels; give the yoto loggers a stderr handler."""
     logger = logging.getLogger("yoto")
     if not logger.handlers:
-        handler = logging.StreamHandler(sys.stderr)
+        # stderr console: `yoto mcp` over stdio must keep stdout for MCP framing.
+        handler = RichHandler(
+            console=stderr_console,
+            show_time=False,
+            show_path=False,
+            markup=False,
+            rich_tracebacks=False,
+        )
         handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
         logger.addHandler(handler)
         logger.setLevel(logging.WARNING)
