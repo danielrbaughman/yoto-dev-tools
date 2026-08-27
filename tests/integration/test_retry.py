@@ -79,3 +79,17 @@ def test_429_honors_retry_after_and_is_capped(respx_mock):
     sleeps: list[float] = []
     assert make_http(sleeps).request("GET", "/x").json() == {"ok": 1}
     assert sleeps == [3.0, 10.0]  # second wait capped at 10s
+
+
+@respx.mock(assert_all_called=True)
+def test_negative_retry_after_is_clamped_to_zero(respx_mock):
+    respx_mock.get("https://api.test/x").mock(
+        side_effect=[
+            httpx.Response(429, headers={"Retry-After": "-5"}),
+            httpx.Response(200, json={}),
+        ]
+    )
+    sleeps: list[float] = []
+    http = ApiHttp(httpx.Client(base_url="https://api.test"), sleep=sleeps.append)
+    http.request("GET", "/x")
+    assert sleeps == [0.0]  # never a negative sleep (time.sleep would raise)

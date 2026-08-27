@@ -163,3 +163,15 @@ def test_commands_before_connect_are_mqtt_errors():
     gateway = make_gateway(FakeMqtt())
     with pytest.raises(MqttError, match="Not connected"):
         gateway.request_status("dev123", timeout=0.1)
+
+
+def test_reconnect_does_not_reuse_stale_connack():
+    """The gateway is reused across calls in long-lived processes (MCP);
+    a second connect must wait for a fresh CONNACK, not trust the old one."""
+    harness = FakeMqtt()
+    gateway = make_gateway(harness, connect_timeout=0.2)
+    gateway.connect("dev123")
+    gateway.close()
+    harness.fire_on_connect = False  # the second CONNACK never arrives
+    with pytest.raises(MqttError, match="Timed out"):
+        gateway.connect("dev123")

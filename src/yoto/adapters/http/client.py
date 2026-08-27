@@ -29,7 +29,9 @@ _CONNECT_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout)
 
 def _retry_after_seconds(response: httpx.Response) -> float:
     try:
-        return min(float(response.headers.get("Retry-After", "1")), 10.0)
+        # Clamp to [0, 10]: a hostile/buggy negative value would make
+        # time.sleep raise.
+        return min(max(float(response.headers.get("Retry-After", "1")), 0.0), 10.0)
     except ValueError:
         return 1.0
 

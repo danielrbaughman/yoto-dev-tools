@@ -67,6 +67,11 @@ class PahoPlayerGateway:
         self._responses: queue.Queue[bytes] = queue.Queue()
 
     def connect(self, device_id: str) -> None:
+        # Reset per-connection state: the gateway is reused across calls in
+        # long-lived processes (MCP server), and a stale set event would make
+        # a failed reconnect look successful.
+        self._connected.clear()
+        self._connect_reason = None
         token = self._token_provider.access_token()
         client = self._client_factory(
             client_id=f"DASH{device_id}",

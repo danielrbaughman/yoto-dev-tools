@@ -262,8 +262,18 @@ def _plan_icons(playable: Card, directory: Path) -> list[tuple[str, _Job]]:
                     assert url is not None
                     seen[url] = chapter.key or str(len(seen) + 1)
     jobs: list[tuple[str, _Job]] = []
+    used: set[str] = set()
     for url, key in seen.items():
         ext = Path(urlparse(url).path).suffix.lstrip(".") or "png"
-        dest = directory / ICONS_DIRNAME / f"{safe_filename(key)}.{ext}"
+        base = safe_filename(key)
+        # A chapter can carry several distinct icons (chapter + per-track);
+        # suffix duplicates so concurrent workers never share a dest file.
+        name = f"{base}.{ext}"
+        counter = 2
+        while name in used:
+            name = f"{base}-{counter}.{ext}"
+            counter += 1
+        used.add(name)
+        dest = directory / ICONS_DIRNAME / name
         jobs.append((f"icon: {dest.name}", _Job(kind="icon", url=url, path=str(dest))))
     return jobs

@@ -5,6 +5,7 @@ import pytest
 
 from tests.fakes.gateways import FakeMediaGateway, InMemoryContentGateway
 from yoto.application.downloads import (
+    _plan_icons,
     download_playlist,
     extension_for,
     safe_filename,
@@ -165,3 +166,30 @@ def test_concurrency_below_one_is_input_error(gateways, tmp_path):
     with pytest.raises(InputError, match="concurrency"):
         download_playlist(content, media, "abc12", tmp_path / "out", concurrency=0)
     assert media.get_calls == []  # rejected before any transfer
+
+
+def test_icon_dests_are_unique_when_a_chapter_has_several_icons():
+    """Chapter + per-track icons share the chapter key; their destination
+    files must not collide (concurrent workers would corrupt the file)."""
+    playable = Card(
+        card_id="abc12",
+        content=CardContent(
+            chapters=[
+                Chapter(
+                    key="01",
+                    display=TrackDisplay(icon16x16="https://cdn.test/i/chapter.png"),
+                    tracks=[
+                        track(
+                            "Moon",
+                            "yoto:#m",
+                            icon="https://cdn.test/i/track.png",
+                        )
+                    ],
+                ),
+            ]
+        ),
+    )
+    jobs = _plan_icons(playable, Path("target"))
+    dests = [job.path for _, job in jobs]
+    assert len(dests) == 2
+    assert len(set(dests)) == 2
