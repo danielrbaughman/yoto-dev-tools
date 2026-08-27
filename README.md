@@ -56,6 +56,7 @@ yoto
               playlist  create --file card.json|-  (schema in --help)
               playlist  create --file DIR [--title] [--cover IMG] [--icon ID]
               playlist  upload audio FILE... | upload cover FILE [--type]
+              playlist  download CARD_ID [--dest DIR] [--no-cover] [--no-icons] [--overwrite]
               group     list|get|create|update|delete | images list|upload|get
               icon      list|search public|private|all | upload FILE
 ```
@@ -64,6 +65,9 @@ yoto
 - `myo playlist update` is **merge semantics**: fetched card + your JSON patch →
   upsert. Unknown/undocumented API fields are preserved losslessly.
 - `myo playlist create/update --file -` reads JSON from stdin.
+- `myo playlist download` saves tracks as `NN - Title.<format>` (the original
+  files Yoto stores, usually opus) plus `cover.*`, `icons/`, and `card.json`
+  into `./<title>/`. Re-running skips files that already exist.
 - Player control needs the `family:devices:control` scope on your client.
 - There is no API to link a playlist to a physical MYO card — that final step
   happens in the Yoto app/player.

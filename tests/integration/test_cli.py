@@ -5,6 +5,7 @@ These pin the machine contract: JSON shapes, exit codes, stdout/stderr split.
 
 import base64
 import json
+from pathlib import Path
 
 import pytest
 import respx
@@ -350,3 +351,46 @@ def test_mcp_command_is_registered():
     result = runner.invoke(app, ["mcp", "--help"])
     assert result.exit_code == 0
     assert "--http" in result.stdout
+
+
+@respx.mock(assert_all_called=True)
+def test_download_end_to_end(respx_mock, logged_in, tmp_path):
+    plain = load_fixture("card_full.json")
+    playable = json.loads(json.dumps(plain))
+    playable["content"]["chapters"][0]["tracks"][0]["trackUrl"] = (
+        "https://media.test/moon?Expires=1&Signature=s"
+    )
+    # respx's default params lookup is "contains": the playable route must be
+    # registered first or the plain one would swallow both requests.
+    respx_mock.get(
+        f"{API}/content/abc12", params={"playable": "true", "signingType": "s3"}
+    ).respond(json={"card": playable})
+    respx_mock.get(f"{API}/content/abc12").respond(json={"card": plain})
+    moon = respx_mock.get("https://media.test/moon").respond(content=b"moon")
+    respx_mock.get("https://example.com/stream.mp3").respond(content=b"stars")
+    respx_mock.get("https://card-content.example/cover.jpg").respond(content=b"jpg")
+    result = runner.invoke(
+        app,
+        [
+            "myo",
+            "playlist",
+            "download",
+            "abc12",
+            "--dest",
+            str(tmp_path / "bed"),
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.stderr
+    assert "Authorization" not in moon.calls[0].request.headers
+    data = json.loads(result.stdout)
+    assert data["cardId"] == "abc12"
+    names = sorted(Path(f["path"]).name for f in data["files"])
+    assert names == [
+        "01 - The Moon.aac",
+        "02 - The Stars.mp3",
+        "card.json",
+        "cover.jpg",
+    ]
+    assert (tmp_path / "bed" / "01 - The Moon.aac").read_bytes() == b"moon"
+    assert "01 - The Moon.aac" in result.stderr  # progress on stderr

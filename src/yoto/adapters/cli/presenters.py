@@ -1,10 +1,12 @@
 """Human-readable renderers (Rich tables) for domain entities."""
 
+from pathlib import Path
 from typing import Any
 
 from rich.table import Table
 
 from yoto.adapters.cli.output import stdout_console
+from yoto.application.downloads import DownloadResult
 from yoto.domain.auth import UserInfo
 from yoto.domain.content import Card
 from yoto.domain.device import Device, DeviceDetails
@@ -88,6 +90,21 @@ def show_upload(result: TranscodedAudio) -> None:
     if info and info.duration is not None:
         line += f" ({fmt_duration(info.duration)})"
     stdout_console.print(line, highlight=False)
+
+
+def show_download(result: DownloadResult) -> None:
+    stdout_console.print(
+        f"[bold]{result.title}[/bold] ({result.card_id}) → {result.directory}"
+    )
+    table = _table("Kind", "File", "Bytes")
+    for file in result.files:
+        table.add_row(file.kind, Path(file.path).name, str(file.bytes))
+    stdout_console.print(table)
+    audio = sum(1 for file in result.files if file.kind == "audio")
+    line = f"{audio} track(s) downloaded"
+    if result.skipped:
+        line += f", {len(result.skipped)} skipped (no playable URL)"
+    stdout_console.print(line, style="dim")
 
 
 def show_icons(icons: list[Icon]) -> None:

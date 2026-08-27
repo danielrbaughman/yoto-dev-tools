@@ -1,10 +1,12 @@
 import io
 
 import httpx
+import pytest
 import respx
 
 from yoto.adapters.http.client import ApiHttp
 from yoto.adapters.http.media_api import HttpMediaGateway
+from yoto.domain.errors import ApiError
 
 
 def make_gateway() -> HttpMediaGateway:
@@ -94,3 +96,22 @@ def test_cover_upload_uses_lowercase_autoconvert(respx_mock):
     request = route.calls[0].request
     assert request.headers["Content-Type"] == "image/jpeg"
     assert request.content == b"img"
+
+
+@respx.mock(assert_all_called=True)
+def test_get_object_streams_without_authorization(respx_mock):
+    route = respx_mock.get("https://media.test/track?sig=1").respond(
+        200, content=b"opus-bytes"
+    )
+    sink = io.BytesIO()
+    written = make_gateway().get_object("https://media.test/track?sig=1", sink)
+    assert written == 10
+    assert sink.getvalue() == b"opus-bytes"
+    assert "Authorization" not in route.calls[0].request.headers
+
+
+@respx.mock(assert_all_called=True)
+def test_get_object_maps_failure_to_api_error(respx_mock):
+    respx_mock.get("https://media.test/gone").respond(403)
+    with pytest.raises(ApiError, match="403"):
+        make_gateway().get_object("https://media.test/gone", io.BytesIO())

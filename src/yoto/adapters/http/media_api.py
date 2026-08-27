@@ -43,6 +43,22 @@ class HttpMediaGateway:
                 status=response.status_code,
             )
 
+    def get_object(self, url: str, sink: IO[bytes]) -> int:
+        written = 0
+        try:
+            with self._bare.stream("GET", url) as response:
+                if not response.is_success:
+                    raise ApiError(
+                        f"Download rejected (HTTP {response.status_code}).",
+                        status=response.status_code,
+                    )
+                for chunk in response.iter_bytes():
+                    sink.write(chunk)
+                    written += len(chunk)
+        except httpx.TransportError as exc:
+            raise NetworkError(f"Download transfer failed: {exc}") from exc
+        return written
+
     def get_transcode(
         self, upload_id: str, *, loudnorm: bool = False
     ) -> TranscodedAudio | None:

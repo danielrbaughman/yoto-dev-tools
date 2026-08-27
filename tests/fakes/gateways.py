@@ -58,6 +58,18 @@ class FakeMediaGateway:
         self.put_calls: list[dict[str, Any]] = []
         self.poll_calls: list[dict[str, Any]] = []
         self.cover_calls: list[dict[str, Any]] = []
+        # get_object serves from here; unknown URLs raise NotFoundError
+        self.objects: dict[str, bytes] = {}
+        self.get_calls: list[str] = []
+
+    def get_object(self, url: str, sink: IO[bytes]) -> int:
+        self.get_calls.append(url)
+        try:
+            data = self.objects[url]
+        except KeyError:
+            raise NotFoundError(f"No object at {url}") from None
+        sink.write(data)
+        return len(data)
 
     def request_upload_slot(self, *, sha256: str, filename: str) -> UploadSlot:
         self.slot_requests.append({"sha256": sha256, "filename": filename})

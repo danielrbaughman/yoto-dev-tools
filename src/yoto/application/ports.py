@@ -90,6 +90,11 @@ class MediaGateway(Protocol):
         self, upload_url: str, data: IO[bytes], *, content_type: str
     ) -> None: ...
 
+    def get_object(self, url: str, sink: IO[bytes]) -> int:
+        """Stream a (pre-signed, unauthenticated) URL into ``sink``; returns
+        the number of bytes written."""
+        ...
+
     def get_transcode(
         self, upload_id: str, *, loudnorm: bool = False
     ) -> TranscodedAudio | None:

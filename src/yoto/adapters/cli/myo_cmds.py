@@ -13,6 +13,7 @@ from yoto.adapters.cli.errors import handle_errors
 from yoto.adapters.cli.output import emit, note, print_json
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import content as content_uc
+from yoto.application import downloads as downloads_uc
 from yoto.application import uploads as uploads_uc
 from yoto.domain.content import CARD_JSON_EXAMPLE
 from yoto.domain.errors import InputError
@@ -164,6 +165,51 @@ def playlist_update(
         get_services().content, card_id, read_json_input(file)
     )
     emit(card, json_, presenters.show_card)
+
+
+@playlist_app.command("download")
+@verbose()
+@handle_errors
+def playlist_download(
+    card_id: Annotated[str, typer.Argument(help="Card/playlist id.")],
+    dest: Annotated[
+        Path | None,
+        typer.Option(
+            "--dest",
+            "-d",
+            help="Target directory (default: ./<playlist title>).",
+        ),
+    ] = None,
+    cover: Annotated[
+        bool, typer.Option("--cover/--no-cover", help="Also save the cover image.")
+    ] = True,
+    icons: Annotated[
+        bool,
+        typer.Option("--icons/--no-icons", help="Also save resolvable icons."),
+    ] = True,
+    overwrite: Annotated[
+        bool,
+        typer.Option("--overwrite", help="Re-download files that already exist."),
+    ] = False,
+    json_: JsonOpt = False,
+) -> None:
+    """Download a playlist's audio (plus cover, icons, card.json) to a folder.
+
+    Tracks are saved as "NN - Title.<format>" in the original format Yoto
+    stores (usually opus). Existing files are skipped unless --overwrite.
+    """
+    services = get_services()
+    result = downloads_uc.download_playlist(
+        services.content,
+        services.media,
+        card_id,
+        dest,
+        cover=cover,
+        icons=icons,
+        overwrite=overwrite,
+        on_progress=note,
+    )
+    emit(result, json_, presenters.show_download)
 
 
 @playlist_app.command("delete")
