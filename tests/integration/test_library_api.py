@@ -111,3 +111,33 @@ def test_family_image_resolve_without_location_is_api_error(respx_mock):
     respx_mock.get("https://api.test/media/family/images/sha-1").respond(302)
     with pytest.raises(ApiError, match="redirect"):
         HttpFamilyImageGateway(make_http()).resolve_url("sha-1", width=640, height=480)
+
+
+@respx.mock(assert_all_called=True)
+def test_get_group(respx_mock):
+    respx_mock.get("https://api.test/card/family/library/groups/grp-1").respond(
+        json={"id": "grp-1", "name": "Favourites"}
+    )
+    group = HttpLibraryGateway(make_http()).get_group("grp-1")
+    assert group.id == "grp-1"
+    assert group.name == "Favourites"
+
+
+@respx.mock(assert_all_called=True)
+def test_update_group_puts_same_body_shape_as_create(respx_mock):
+    route = respx_mock.put("https://api.test/card/family/library/groups/grp-1").respond(
+        json={"id": "grp-1", "name": "Renamed", "items": []}
+    )
+    group = LibraryGroup(
+        name="Renamed",
+        image_id="fp-cards",
+        items=[LibraryGroupItem(content_id="abc12")],
+    )
+    updated = HttpLibraryGateway(make_http()).update_group("grp-1", group)
+    assert updated.name == "Renamed"
+    body = json.loads(route.calls[0].request.content)
+    assert body == {
+        "name": "Renamed",
+        "items": [{"contentId": "abc12"}],
+        "imageId": "fp-cards",
+    }

@@ -6,13 +6,17 @@ These pin the machine contract: JSON shapes, exit codes, stdout/stderr split.
 import base64
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import respx
 from typer.testing import CliRunner
 
 from tests.conftest import load_fixture
+from yoto.adapters.cli import auth_cmds, deps
 from yoto.adapters.cli.app import app
+from yoto.composition import build_services
+from yoto.settings import YotoSettings
 
 runner = CliRunner()
 
@@ -404,3 +408,51 @@ def test_human_output_does_not_parse_markup_in_api_strings(respx_mock, logged_in
     result = runner.invoke(app, ["myo", "playlist", "get", "abc12"])
     assert result.exit_code == 0, result.stderr
     assert "[bold]Not markup[/bold] [1/2]" in result.stdout
+
+
+# --- auth login: services wiring (the flow itself is unit-tested) ---
+
+
+class _StubFlow:
+    def __init__(self, record: dict):
+        self.record = record
+
+    def run(self, open_browser: bool):
+        self.record["open_browser"] = open_browser
+        return SimpleNamespace(sub="auth0|dan")
+
+
+def test_login_uses_current_services_without_overrides(monkeypatch):
+    record: dict = {}
+    services = build_services(YotoSettings())
+    services.login_flow = lambda notify: _StubFlow(record)  # ty: ignore[invalid-assignment]
+    deps.set_services(services)
+    monkeypatch.setattr(
+        auth_cmds,
+        "build_services",
+        lambda settings: pytest.fail("no rebuild expected without overrides"),
+    )
+    result = runner.invoke(app, ["auth", "login", "--no-browser"])
+    assert result.exit_code == 0
+    assert record["open_browser"] is False
+
+
+def test_login_port_and_client_id_rebuild_services(monkeypatch):
+    record: dict = {}
+    deps.set_services(build_services(YotoSettings()))
+
+    def fake_build(settings):
+        record["settings"] = settings
+        rebuilt = build_services(settings)
+        rebuilt.login_flow = lambda notify: _StubFlow(record)  # ty: ignore[invalid-assignment]
+        return rebuilt
+
+    monkeypatch.setattr(auth_cmds, "build_services", fake_build)
+    result = runner.invoke(
+        app,
+        ["auth", "login", "--no-browser", "--client-id", "my-cid", "--port", "9999"],
+    )
+    assert result.exit_code == 0
+    assert record["settings"].client_id == "my-cid"
+    assert record["settings"].redirect_port == 9999
+    assert record["open_browser"] is False

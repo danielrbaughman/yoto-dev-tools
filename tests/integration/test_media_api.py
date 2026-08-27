@@ -6,7 +6,7 @@ import respx
 
 from yoto.adapters.http.client import ApiHttp
 from yoto.adapters.http.media_api import HttpMediaGateway
-from yoto.domain.errors import ApiError
+from yoto.domain.errors import ApiError, NetworkError
 
 
 def make_gateway() -> HttpMediaGateway:
@@ -115,3 +115,45 @@ def test_get_object_maps_failure_to_api_error(respx_mock):
     respx_mock.get("https://media.test/gone").respond(403)
     with pytest.raises(ApiError, match="403"):
         make_gateway().get_object("https://media.test/gone", io.BytesIO())
+
+
+@respx.mock(assert_all_called=True)
+def test_put_object_transport_error_is_network_error(respx_mock):
+    respx_mock.put("https://s3.test/upload").mock(
+        side_effect=httpx.ConnectError("reset")
+    )
+    with pytest.raises(NetworkError, match="Upload transfer failed"):
+        make_gateway().put_object(
+            "https://s3.test/upload", io.BytesIO(b"x"), content_type="audio/mpeg"
+        )
+
+
+@respx.mock(assert_all_called=True)
+def test_put_object_rejection_is_api_error(respx_mock):
+    respx_mock.put("https://s3.test/upload").respond(403)
+    with pytest.raises(ApiError, match="403"):
+        make_gateway().put_object(
+            "https://s3.test/upload", io.BytesIO(b"x"), content_type="audio/mpeg"
+        )
+
+
+@respx.mock(assert_all_called=True)
+def test_get_object_transport_error_is_network_error(respx_mock):
+    respx_mock.get("https://media.test/track").mock(
+        side_effect=httpx.ConnectError("reset")
+    )
+    with pytest.raises(NetworkError, match="Download transfer failed"):
+        make_gateway().get_object("https://media.test/track", io.BytesIO())
+
+
+@respx.mock(assert_all_called=True)
+def test_transcode_non_dict_bodies_return_none(respx_mock):
+    respx_mock.get("https://api.test/media/upload/id1/transcoded").mock(
+        side_effect=[
+            httpx.Response(200, json={"transcode": None}),
+            httpx.Response(200, json=["weird"]),
+        ]
+    )
+    gateway = make_gateway()
+    assert gateway.get_transcode("id1") is None
+    assert gateway.get_transcode("id1") is None

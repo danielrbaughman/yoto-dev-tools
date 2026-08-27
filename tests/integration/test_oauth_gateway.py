@@ -1,10 +1,11 @@
 from urllib.parse import parse_qs
 
+import httpx
 import pytest
 import respx
 
 from yoto.adapters.http.oauth import Auth0Gateway
-from yoto.domain.errors import ConfigError, OAuthFlowError
+from yoto.domain.errors import ConfigError, NetworkError, OAuthFlowError
 
 
 def make_gateway(clock, client_id="cid"):
@@ -96,3 +97,53 @@ def test_userinfo(respx_mock, clock):
     info = make_gateway(clock).userinfo("tok")
     assert info["name"] == "Daniel"
     assert route.calls[0].request.headers["Authorization"] == "Bearer tok"
+
+
+@respx.mock(assert_all_called=True)
+def test_userinfo_transport_error_is_network_error(respx_mock, clock):
+    respx_mock.get("https://login.test/userinfo").mock(
+        side_effect=httpx.ConnectError("dns down")
+    )
+    with pytest.raises(NetworkError, match="userinfo"):
+        make_gateway(clock).userinfo("tok")
+
+
+@respx.mock(assert_all_called=True)
+def test_userinfo_invalid_json_is_oauth_flow_error(respx_mock, clock):
+    respx_mock.get("https://login.test/userinfo").respond(200, text="<html>")
+    with pytest.raises(OAuthFlowError, match="invalid JSON"):
+        make_gateway(clock).userinfo("tok")
+
+
+@respx.mock(assert_all_called=True)
+def test_token_transport_error_is_network_error(respx_mock, clock):
+    respx_mock.post("https://login.test/oauth/token").mock(
+        side_effect=httpx.ConnectError("refused")
+    )
+    with pytest.raises(NetworkError, match="Token request failed"):
+        make_gateway(clock).refresh("rt-1")
+
+
+@respx.mock(assert_all_called=True)
+def test_token_response_without_access_token_is_error(respx_mock, clock):
+    respx_mock.post("https://login.test/oauth/token").respond(
+        json={"token_type": "Bearer"}
+    )
+    with pytest.raises(OAuthFlowError, match="access_token"):
+        make_gateway(clock).refresh("rt-1")
+
+
+@respx.mock(assert_all_called=True)
+def test_non_json_error_body_falls_back_to_text(respx_mock, clock):
+    respx_mock.post("https://login.test/oauth/token").respond(
+        502, text="upstream exploded"
+    )
+    with pytest.raises(OAuthFlowError, match="upstream exploded"):
+        make_gateway(clock).refresh("rt-1")
+
+
+@respx.mock(assert_all_called=True)
+def test_non_dict_json_error_body_reports_status(respx_mock, clock):
+    respx_mock.post("https://login.test/oauth/token").respond(400, json=["weird"])
+    with pytest.raises(OAuthFlowError, match="HTTP 400"):
+        make_gateway(clock).refresh("rt-1")

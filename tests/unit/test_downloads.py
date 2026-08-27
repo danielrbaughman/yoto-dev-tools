@@ -158,3 +158,10 @@ def test_serial_download_matches_concurrent(gateways, tmp_path):
     assert [(f.kind, Path(f.path).name, f.bytes) for f in serial.files] == [
         (f.kind, Path(f.path).name, f.bytes) for f in parallel.files
     ]
+
+
+def test_concurrency_below_one_is_input_error(gateways, tmp_path):
+    content, media = gateways
+    with pytest.raises(InputError, match="concurrency"):
+        download_playlist(content, media, "abc12", tmp_path / "out", concurrency=0)
+    assert media.get_calls == []  # rejected before any transfer

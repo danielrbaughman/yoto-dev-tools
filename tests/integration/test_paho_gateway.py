@@ -127,3 +127,39 @@ def test_connect_timeout_when_no_connack():
     harness.fire_on_connect = False
     with pytest.raises(MqttError, match="Timed out"):
         make_gateway(harness, connect_timeout=0.2).connect("dev123")
+
+
+def test_connect_socket_failure_is_mqtt_error():
+    harness = FakeMqtt()
+
+    def broken_factory(**kwargs):
+        client = harness.factory(**kwargs)
+
+        def refuse(*args, **kw):
+            raise OSError("no route to host")
+
+        client.connect = refuse  # ty: ignore[invalid-assignment]
+        return client
+
+    gateway = PahoPlayerGateway(
+        host="broker.test",
+        authorizer="PublicJWTAuthorizer",
+        token_provider=StaticProvider(),
+        client_factory=broken_factory,
+    )
+    with pytest.raises(MqttError, match="Cannot reach"):
+        gateway.connect("dev123")
+
+
+def test_status_timeout_asks_if_player_is_online():
+    harness = FakeMqtt()  # no responder scripted: the report never arrives
+    gateway = make_gateway(harness)
+    gateway.connect("dev123")
+    with pytest.raises(OperationTimeout, match="online"):
+        gateway.request_status("dev123", timeout=0.3)
+
+
+def test_commands_before_connect_are_mqtt_errors():
+    gateway = make_gateway(FakeMqtt())
+    with pytest.raises(MqttError, match="Not connected"):
+        gateway.request_status("dev123", timeout=0.1)

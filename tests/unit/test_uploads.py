@@ -3,15 +3,17 @@ import os
 
 import pytest
 
-from tests.fakes.gateways import FakeMediaGateway
+from tests.fakes.gateways import FakeMediaGateway, InMemoryContentGateway
 from yoto.application.uploads import (
     MAX_AUDIO_BYTES,
     natural_key,
+    set_cover,
     title_from_stem,
     upload_audio,
 )
-from yoto.domain.errors import InputError, OperationTimeout
-from yoto.domain.media import TranscodedAudio, TranscodedInfo
+from yoto.domain.content import Card
+from yoto.domain.errors import ApiError, InputError, OperationTimeout
+from yoto.domain.media import TranscodedAudio, TranscodedInfo, UploadSlot
 
 
 def ready(sha="deadbeef"):
@@ -94,3 +96,24 @@ def test_title_from_stem_strips_track_numbers():
     assert title_from_stem("01 - The Moon") == "The Moon"
     assert title_from_stem("02_the_stars") == "the stars"
     assert title_from_stem("42") == "42"  # never empty
+
+
+def test_slot_without_upload_id_is_api_error(audio_file, clock):
+    media = FakeMediaGateway()
+    media.slot = UploadSlot(upload_url="https://s3.test/put", upload_id=None)
+    with pytest.raises(ApiError, match="uploadId"):
+        upload_audio(media, clock, audio_file)
+
+
+def test_set_cover_uploads_and_merges_into_card(tmp_path):
+    content = InMemoryContentGateway()
+    content.seed(Card(card_id="abc12", title="Tales"))
+    media = FakeMediaGateway()
+    image = tmp_path / "cover.png"
+    image.write_bytes(b"png-bytes")
+    card = set_cover(content, media, "abc12", image, cover_type="myo")
+    assert media.cover_calls[0]["cover_type"] == "myo"
+    assert media.cover_calls[0]["bytes"] == b"png-bytes"
+    assert card.metadata is not None and card.metadata.cover is not None
+    assert card.metadata.cover.image_l == "https://cdn.test/cover.png"
+    assert content.upserted[-1] is card  # persisted via upsert
