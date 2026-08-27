@@ -14,6 +14,7 @@ from yoto.adapters.cli.output import emit, note, print_json
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import content as content_uc
 from yoto.application import uploads as uploads_uc
+from yoto.domain.content import CARD_JSON_EXAMPLE
 from yoto.domain.errors import InputError
 
 myo_app = typer.Typer(help="MYO (Make Your Own) content.")
@@ -31,49 +32,11 @@ FileOpt = Annotated[
 
 # Rendered verbatim in --help (a paragraph containing only \b marks the next
 # paragraph as no-rewrap; paragraphs are separated by blank lines).
-_CARD_JSON_HELP = """
-
-\b
-The JSON card schema (only "title" and one chapter/track are required; unknown fields are passed through untouched):
-
-\b
-{
-  "title": "My Playlist",                    // required, 1-140 chars
-  "content": {
-    "chapters": [                            // 1+ chapters
-      {
-        "key": "01",
-        "title": "Chapter One",
-        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto myo icon`
-        "tracks": [                          // 1+ tracks per chapter
-          {
-            "key": "01",
-            "title": "Track One",
-            "trackUrl": "yoto:#<sha256>",    // from `myo playlist upload audio`,
-            "type": "audio",                 //   or a URL with type "stream"
-            "format": "opus",                // opus | mp3 | aac | wav | ...
-            "duration": 185,                 // seconds (optional)
-            "fileSize": 2960000              // bytes (optional)
-          }
-        ]
-      }
-    ],
-    "config": {"autoadvance": "next"}        // next | repeat | none
-  },
-  "metadata": {
-    "cover": {"imageL": "https://..."},      // from `myo playlist upload cover`
-    "description": "...",
-    "author": "...",
-    "category": "stories",  // stories|music|radio|podcast|sfx|activities|none
-    "languages": ["en"],
-    "minAge": 3,
-    "maxAge": 8
-  }
-}
-
-\b
-Tip: `yoto myo playlist get <id> --json` prints a real card in exactly this shape, ready to edit and feed back in.
-"""
+_CARD_JSON_HELP = (
+    "\n\n"
+    + "\n\n".join("\b\n" + para for para in CARD_JSON_EXAMPLE.split("\n\n"))
+    + "\n"
+)
 
 
 def read_json_input(source: str) -> Any:

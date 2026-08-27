@@ -9,6 +9,7 @@ import typer
 
 from yoto import __version__
 from yoto.adapters.cli.auth_cmds import auth_app
+from yoto.adapters.cli.mcp_cmds import mcp
 from yoto.adapters.cli.myo_cmds import myo_app
 from yoto.adapters.cli.player_cmds import player_app
 
@@ -22,6 +23,7 @@ app = typer.Typer(
 app.add_typer(auth_app, name="auth")
 app.add_typer(player_app, name="player")
 app.add_typer(myo_app, name="myo")
+app.command("mcp")(mcp)
 
 
 def _version_callback(value: bool) -> None:

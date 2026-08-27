@@ -51,6 +51,7 @@ yoto
 │             pause|resume|stop DEVICE | volume DEVICE [0-100] | watch DEVICE   (MQTT)
 │             light DEVICE R G B|--hex|--off | sleep DEVICE SECONDS|--off
 │             config get DEVICE | config set DEVICE KEY=VALUE... [--name]   (REST)
+├── mcp       [--http --host 127.0.0.1 --port 8765]   MCP server (stdio by default)
 └── myo       playlist  list | get | create | update | delete
               playlist  create --file card.json|-  (schema in --help)
               playlist  create --file DIR [--title] [--cover IMG] [--icon ID]
@@ -66,6 +67,33 @@ yoto
 - Player control needs the `family:devices:control` scope on your client.
 - There is no API to link a playlist to a physical MYO card — that final step
   happens in the Yoto app/player.
+
+## MCP server
+
+`yoto mcp` serves the same capabilities as MCP tools (33 of them: playlists,
+uploads, groups, icons, players, `auth_whoami`) for Claude Code, Claude
+Desktop, and any other MCP client. It reuses the CLI's credentials — run
+`yoto auth login` once (or export `YOTO_ACCESS_TOKEN`), then:
+
+```sh
+claude mcp add yoto -- yoto mcp          # Claude Code
+```
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{"mcpServers": {"yoto": {"command": "yoto", "args": ["mcp"]}}}
+```
+
+- Tool results and inputs are the same API-native camelCase JSON as `--json`;
+  `playlist_get` output is valid `playlist_update` input (deep merge).
+- Errors come back as `<kind>: <message>` with kind in `not_found`, `invalid`,
+  `auth_required`, `timeout`, `network`, `api_error`.
+- File arguments are paths on the machine running the server.
+- `yoto mcp --http [--host 127.0.0.1] [--port 8765]` serves streamable HTTP at
+  `http://127.0.0.1:8765/mcp`. The endpoint has no auth of its own and acts
+  with your Yoto account — keep it bound to localhost.
+- Not exposed: `auth login/logout` (interactive) and `player watch` (streaming).
 
 ## Machine contract
 
@@ -114,6 +142,8 @@ adapters/
   mqtt/          AWS IoT websockets player control (paho)
   storage/       atomic 0600 token file + flock
   cli/           Typer commands, presenters, output/exit-code contract
+  mcp/           FastMCP tools over the same use cases (`yoto mcp`)
+  serialize.py   the shared --json / tool-result serializer
 composition.py   the only place adapters are wired together
 settings.py      pydantic-settings (env, .env, config.json)
 ```

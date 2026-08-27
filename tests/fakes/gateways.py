@@ -1,5 +1,6 @@
 """In-memory fakes for content/media/icon/device/library gateways."""
 
+from collections.abc import Iterator
 from typing import IO, Any
 
 from yoto.domain.content import Card
@@ -7,6 +8,7 @@ from yoto.domain.device import Device, DeviceDetails
 from yoto.domain.errors import NotFoundError
 from yoto.domain.library import LibraryGroup
 from yoto.domain.media import CoverImage, Icon, TranscodedAudio, UploadSlot
+from yoto.domain.player import CommandAck, PlaybackEvent, PlayerStatus
 
 
 class InMemoryContentGateway:
@@ -164,3 +166,32 @@ class FakeLibraryGateway:
 
     def delete_group(self, group_id: str) -> None:
         self.groups.pop(group_id, None)
+
+
+class FakePlayerGateway:
+    """Scripted PlayerGateway: records sends, returns canned ack/status."""
+
+    def __init__(self, status: PlayerStatus | None = None, ok: bool = True) -> None:
+        self.status = status or PlayerStatus(volume=8, user_volume=8)
+        self.ok = ok
+        self.connected: list[str] = []
+        self.closed = 0
+        self.sent: list[tuple[str, str, dict[str, Any]]] = []
+
+    def connect(self, device_id: str) -> None:
+        self.connected.append(device_id)
+
+    def close(self) -> None:
+        self.closed += 1
+
+    def send(
+        self, device_id: str, command: str, payload: dict[str, Any], *, timeout: float
+    ) -> CommandAck:
+        self.sent.append((device_id, command, payload))
+        return CommandAck(resource=command, ok=self.ok)
+
+    def request_status(self, device_id: str, *, timeout: float) -> PlayerStatus:
+        return self.status
+
+    def events(self, device_id: str) -> Iterator[PlaybackEvent]:
+        return iter(())

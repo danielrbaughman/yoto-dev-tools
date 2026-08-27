@@ -15,7 +15,16 @@ from yoto.adapters.http.oauth import Auth0Gateway
 from yoto.adapters.storage.token_store import FileTokenStore
 from yoto.adapters.system import SystemClock, WebBrowserOpener
 from yoto.application.auth import AuthSession, LoginFlow, StaticTokenProvider
-from yoto.application.ports import PlayerGateway, TokenProvider
+from yoto.application.ports import (
+    ContentGateway,
+    DeviceGateway,
+    FamilyImageGateway,
+    IconGateway,
+    LibraryGateway,
+    MediaGateway,
+    PlayerGateway,
+    TokenProvider,
+)
 from yoto.settings import YotoSettings
 
 
@@ -46,12 +55,12 @@ class Services:
         self._http = ApiHttp(api_client, sleep=self.clock.sleep)
         # Presigned S3 PUTs must not carry an Authorization header.
         self._bare_client = httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0))
-        self.content = HttpContentGateway(self._http)
-        self.media = HttpMediaGateway(self._http, self._bare_client)
-        self.icons = HttpIconGateway(self._http)
-        self.devices = HttpDeviceGateway(self._http)
-        self.library = HttpLibraryGateway(self._http)
-        self.family_images = HttpFamilyImageGateway(self._http)
+        self.content: ContentGateway = HttpContentGateway(self._http)
+        self.media: MediaGateway = HttpMediaGateway(self._http, self._bare_client)
+        self.icons: IconGateway = HttpIconGateway(self._http)
+        self.devices: DeviceGateway = HttpDeviceGateway(self._http)
+        self.library: LibraryGateway = HttpLibraryGateway(self._http)
+        self.family_images: FamilyImageGateway = HttpFamilyImageGateway(self._http)
         self._player: PlayerGateway | None = None
 
     def login_flow(self, notify: Callable[[str], None]) -> LoginFlow:

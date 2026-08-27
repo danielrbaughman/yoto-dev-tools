@@ -11,8 +11,9 @@ import sys
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
 from rich.console import Console
+
+from yoto.adapters.serialize import to_jsonable
 
 stdout_console = Console()
 stderr_console = Console(stderr=True)
@@ -21,16 +22,6 @@ stderr_console = Console(stderr=True)
 def note(message: str) -> None:
     """Human-facing progress/diagnostics — always stderr."""
     stderr_console.print(message, highlight=False)
-
-
-def to_jsonable(value: Any) -> Any:
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json", by_alias=True, exclude_none=True)
-    if isinstance(value, list):
-        return [to_jsonable(item) for item in value]
-    if isinstance(value, dict):
-        return {key: to_jsonable(item) for key, item in value.items()}
-    return value
 
 
 def print_json(value: Any) -> None:

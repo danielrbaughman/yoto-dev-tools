@@ -344,3 +344,9 @@ def test_icon_list_all_combines_both(respx_mock, logged_in):
     data = json.loads(result.stdout)
     assert len(data) == 4
     assert data[0]["mediaId"] == "mine-1"  # private icons listed first
+
+
+def test_mcp_command_is_registered():
+    result = runner.invoke(app, ["mcp", "--help"])
+    assert result.exit_code == 0
+    assert "--http" in result.stdout

@@ -10,6 +10,44 @@ from pydantic import Field
 
 from yoto.domain.base import ApiModel
 
+CARD_JSON_EXAMPLE = """The JSON card schema (only "title" and one chapter/track are required; unknown fields are passed through untouched):
+
+{
+  "title": "My Playlist",                    // required, 1-140 chars
+  "content": {
+    "chapters": [                            // 1+ chapters
+      {
+        "key": "01",
+        "title": "Chapter One",
+        "display": {"icon16x16": "yoto:#<mediaId>"},   // see `yoto myo icon`
+        "tracks": [                          // 1+ tracks per chapter
+          {
+            "key": "01",
+            "title": "Track One",
+            "trackUrl": "yoto:#<sha256>",    // from `myo playlist upload audio`,
+            "type": "audio",                 //   or a URL with type "stream"
+            "format": "opus",                // opus | mp3 | aac | wav | ...
+            "duration": 185,                 // seconds (optional)
+            "fileSize": 2960000              // bytes (optional)
+          }
+        ]
+      }
+    ],
+    "config": {"autoadvance": "next"}        // next | repeat | none
+  },
+  "metadata": {
+    "cover": {"imageL": "https://..."},      // from `myo playlist upload cover`
+    "description": "...",
+    "author": "...",
+    "category": "stories",  // stories|music|radio|podcast|sfx|activities|none
+    "languages": ["en"],
+    "minAge": 3,
+    "maxAge": 8
+  }
+}
+
+Tip: `yoto myo playlist get <id> --json` prints a real card in exactly this shape, ready to edit and feed back in."""
+
 
 class TrackDisplay(ApiModel):
     # Explicit aliases: to_camel would mangle these to icon16X16.
