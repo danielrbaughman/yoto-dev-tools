@@ -57,15 +57,20 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 - If a required sync or push is blocked, stop and report the exact command and error.
 <!-- END BEADS INTEGRATION -->
 
+## Git & Sync Policy
+
+**This repository opts in to the team-maintainer profile.** Agents may commit,
+push, close beads, and run `bd dolt push` as part of normal work and session
+close — no per-session approval needed. Run the quality gates (`./checks.sh`)
+before committing code changes. A current "do not commit" or "do not push"
+instruction from the user still wins.
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+./setup.sh      # dev env: uv sync + pre-commit hook
+./checks.sh     # all quality gates: ty, ruff check/format, pytest + coverage
+uv run pytest -m "not live"   # tests only (live tests need YOTO_LIVE=1)
 ```
 
 ## Architecture Overview
