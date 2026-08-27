@@ -5,6 +5,7 @@ from typing import IO
 import httpx
 
 from yoto.adapters.http.client import ApiHttp
+from yoto.application.ports import ChunkProgress
 from yoto.domain.errors import ApiError, NetworkError
 from yoto.domain.media import CoverImage, TranscodedAudio, UploadSlot
 
@@ -43,7 +44,9 @@ class HttpMediaGateway:
                 status=response.status_code,
             )
 
-    def get_object(self, url: str, sink: IO[bytes]) -> int:
+    def get_object(
+        self, url: str, sink: IO[bytes], on_chunk: ChunkProgress | None = None
+    ) -> int:
         written = 0
         try:
             with self._bare.stream("GET", url) as response:
@@ -52,9 +55,13 @@ class HttpMediaGateway:
                         f"Download rejected (HTTP {response.status_code}).",
                         status=response.status_code,
                     )
+                length = response.headers.get("content-length")
+                size = int(length) if length and length.isdigit() else None
                 for chunk in response.iter_bytes():
                     sink.write(chunk)
                     written += len(chunk)
+                    if on_chunk is not None:
+                        on_chunk(written, size)
         except httpx.TransportError as exc:
             raise NetworkError(f"Download transfer failed: {exc}") from exc
         return written

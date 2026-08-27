@@ -13,7 +13,20 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
-from rich.console import Console
+from rich.console import Console, Group
+from rich.live import Live
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    MofNCompleteColumn,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
+from rich.progress import (
+    Progress as RichProgress,
+)
 from rich.text import Text
 from rich.theme import Theme
 
@@ -75,6 +88,79 @@ def status(initial: str) -> Iterator[Progress]:
             spinner.update(Text(line, style="muted"))
 
         yield progress
+
+
+class TransferBar:
+    """Progress bars for multi-file transfers (TTY only; no-op otherwise).
+
+    ``message(line)`` prints a persistent line above the bars;
+    ``update(...)`` drives an overall "N/M files" bar plus a byte bar for the
+    file currently transferring.
+    """
+
+    def __init__(
+        self,
+        overall: RichProgress | None,
+        files: RichProgress | None,
+        description: str = "files",
+    ) -> None:
+        self._overall = overall
+        self._files = files
+        self._description = description
+        self._overall_task: TaskID | None = None
+        self._file_task: TaskID | None = None
+        self._current: str | None = None
+
+    def message(self, line: str) -> None:
+        note(line)
+
+    def update(
+        self,
+        name: str,
+        index: int,
+        total: int,
+        written: int,
+        size: int | None,
+        done: bool = False,
+    ) -> None:
+        if self._overall is None or self._files is None:
+            return
+        if self._overall_task is None:
+            self._overall_task = self._overall.add_task(self._description, total=total)
+        if name != self._current:
+            self._current = name
+            if self._file_task is not None:
+                self._files.remove_task(self._file_task)
+            self._file_task = self._files.add_task(name, total=size)
+        assert self._file_task is not None
+        self._files.update(self._file_task, completed=written, total=size)
+        if done:
+            self._overall.update(self._overall_task, completed=index)
+
+
+@contextmanager
+def transfer_bar(description: str) -> Iterator[TransferBar]:
+    """Two stacked progress bars on stderr: files done, and bytes of the
+    current file. Degrades to plain ``note`` lines when not on a terminal."""
+    if not stderr_console.is_terminal:
+        yield TransferBar(None, None)
+        return
+    overall = RichProgress(
+        TextColumn("[muted]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        console=stderr_console,
+    )
+    files = RichProgress(
+        TextColumn("[muted]{task.description}"),
+        BarColumn(),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+        console=stderr_console,
+    )
+    with Live(Group(overall, files), console=stderr_console, transient=True):
+        yield TransferBar(overall, files, description)
 
 
 def print_json(value: Any) -> None:

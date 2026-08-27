@@ -10,7 +10,7 @@ import typer
 from yoto.adapters.cli import icon_cmds, library_cmds, presenters
 from yoto.adapters.cli.deps import get_services
 from yoto.adapters.cli.errors import handle_errors
-from yoto.adapters.cli.output import emit, print_json, status, success
+from yoto.adapters.cli.output import emit, print_json, status, success, transfer_bar
 from yoto.adapters.cli.params import JsonOpt, YesOpt, verbose
 from yoto.application import content as content_uc
 from yoto.application import downloads as downloads_uc
@@ -214,7 +214,7 @@ def playlist_download(
     stores (usually opus). Existing files are skipped unless --overwrite.
     """
     services = get_services()
-    with status("Downloading…") as progress:
+    with transfer_bar("Downloading") as bar:
         result = downloads_uc.download_playlist(
             services.content,
             services.media,
@@ -223,7 +223,10 @@ def playlist_download(
             cover=cover,
             icons=icons,
             overwrite=overwrite,
-            on_progress=progress,
+            on_progress=bar.message,
+            on_transfer=lambda t: bar.update(
+                t.name, t.index, t.total, t.written, t.size, t.done
+            ),
         )
     emit(result, json_, presenters.show_download)
 

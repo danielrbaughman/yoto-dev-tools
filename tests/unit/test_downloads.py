@@ -95,7 +95,8 @@ def test_downloads_tracks_cover_icons_and_card_json(gateways, tmp_path):
     assert (out / "cover.jpg").read_bytes() == b"jpeg"
     assert (out / "icons" / "01.png").read_bytes() == b"png"
     assert result.skipped == ["Sun"]
-    assert [f.kind for f in result.files] == ["audio", "audio", "cover", "icon", "card"]
+    # cover and icons are fetched first so the folder is browsable early
+    assert [f.kind for f in result.files] == ["cover", "icon", "audio", "audio", "card"]
     # card.json is the plain fetch: no signed URLs leak to disk
     card = json.loads((out / "card.json").read_text())
     assert card["content"]["chapters"][0]["tracks"][0]["trackUrl"] == "yoto:#m"

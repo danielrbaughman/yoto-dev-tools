@@ -13,3 +13,4 @@ __pycache__/
 # Build artifacts
 dist/
 *.egg-info/
+.DS_Store

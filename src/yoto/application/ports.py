@@ -4,7 +4,7 @@ Driven adapters (HTTP, MQTT, storage, system) implement these; tests supply
 in-memory fakes. This file is the architecture's table of contents.
 """
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
 from typing import IO, Any, Protocol
 
@@ -83,6 +83,9 @@ class ContentGateway(Protocol):
     def delete_card(self, card_id: str) -> None: ...
 
 
+ChunkProgress = Callable[[int, int | None], None]
+
+
 class MediaGateway(Protocol):
     def request_upload_slot(self, *, sha256: str, filename: str) -> UploadSlot: ...
 
@@ -90,9 +93,12 @@ class MediaGateway(Protocol):
         self, upload_url: str, data: IO[bytes], *, content_type: str
     ) -> None: ...
 
-    def get_object(self, url: str, sink: IO[bytes]) -> int:
+    def get_object(
+        self, url: str, sink: IO[bytes], on_chunk: ChunkProgress | None = None
+    ) -> int:
         """Stream a (pre-signed, unauthenticated) URL into ``sink``; returns
-        the number of bytes written."""
+        the number of bytes written. ``on_chunk(written, size)`` is called after
+        each chunk (``size`` is None when the server sends no Content-Length)."""
         ...
 
     def get_transcode(

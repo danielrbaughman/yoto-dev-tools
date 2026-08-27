@@ -63,22 +63,74 @@ def extension_for(fmt: str | None, url: str) -> str:
     return suffix or (fmt.lower() if fmt else "bin")
 
 
+class TransferProgress(ApiModel):
+    """Byte-level progress of one file within a playlist download."""
+
+    name: str
+    index: int  # 1-based position among all files being fetched
+    total: int  # number of files being fetched
+    written: int
+    size: int | None  # None until/unless the server reports Content-Length
+    done: bool = False
+
+
+Transfer = Callable[[TransferProgress], None]
+
+
+def _noop_transfer(_: TransferProgress) -> None:
+    pass
+
+
+class _Job(ApiModel):
+    kind: str
+    url: str
+    path: str
+    title: str | None = None
+
+
 def _write(
     media: MediaGateway,
-    url: str,
-    dest: Path,
+    job: _Job,
+    index: int,
+    total: int,
     *,
     overwrite: bool,
     on_progress: Progress,
+    on_transfer: Transfer,
 ) -> int:
+    dest = Path(job.path)
     if dest.exists() and not overwrite:
         on_progress(f"  exists, skipping: {dest.name}")
-        return dest.stat().st_size
+        size = dest.stat().st_size
+        on_transfer(
+            TransferProgress(
+                name=dest.name,
+                index=index,
+                total=total,
+                written=size,
+                size=size,
+                done=True,
+            )
+        )
+        return size
     dest.parent.mkdir(parents=True, exist_ok=True)
     partial = dest.with_name(dest.name + ".part")
+
+    def on_chunk(written: int, size: int | None) -> None:
+        on_transfer(
+            TransferProgress(
+                name=dest.name, index=index, total=total, written=written, size=size
+            )
+        )
+
     with partial.open("wb") as sink:
-        size = media.get_object(url, sink)
+        size = media.get_object(job.url, sink, on_chunk)
     partial.replace(dest)
+    on_transfer(
+        TransferProgress(
+            name=dest.name, index=index, total=total, written=size, size=size, done=True
+        )
+    )
     return size
 
 
@@ -92,8 +144,13 @@ def download_playlist(
     icons: bool = True,
     overwrite: bool = False,
     on_progress: Progress = _noop_progress,
+    on_transfer: Transfer = _noop_transfer,
 ) -> DownloadResult:
-    """Download every track of a playlist as ``NN - Title.ext`` files."""
+    """Download every track of a playlist as ``NN - Title.ext`` files.
+
+    ``on_progress`` receives one human line per file; ``on_transfer`` receives
+    byte-level ``TransferProgress`` updates (for progress bars).
+    """
     card = content.get_card(card_id)
     playable = content.get_card(card_id, playable=True)
     directory = directory or Path(safe_filename(card.title or card_id, card_id))
@@ -101,7 +158,14 @@ def download_playlist(
         raise InputError(f"Not a directory: {directory}")
     directory.mkdir(parents=True, exist_ok=True)
 
-    files: list[DownloadedFile] = []
+    # Plan every file first so progress reporting knows the total up front.
+    # Small assets (cover, icons) go first so the folder is browsable while
+    # the audio is still transferring.
+    jobs: list[tuple[str, _Job]] = []  # (progress line, job)
+    if cover:
+        jobs.extend(_plan_cover(card, directory))
+    if icons:
+        jobs.extend(_plan_icons(playable, directory))
     skipped: list[str] = []
     chapters = playable.content.chapters if playable.content else []
     tracks = [(chapter, track) for chapter in chapters for track in chapter.tracks]
@@ -117,23 +181,22 @@ def download_playlist(
         dest = directory / (
             f"{index:0{width}d} - {safe_filename(title)}.{extension_for(track.format, url)}"
         )
-        on_progress(f"[{index}/{len(tracks)}] {dest.name}")
-        size = _write(media, url, dest, overwrite=overwrite, on_progress=on_progress)
+        line = f"[{index}/{len(tracks)}] {dest.name}"
+        jobs.append((line, _Job(kind="audio", url=url, path=str(dest), title=title)))
+    files: list[DownloadedFile] = []
+    for index, (line, job) in enumerate(jobs, start=1):
+        on_progress(line)
+        size = _write(
+            media,
+            job,
+            index,
+            len(jobs),
+            overwrite=overwrite,
+            on_progress=on_progress,
+            on_transfer=on_transfer,
+        )
         files.append(
-            DownloadedFile(kind="audio", path=str(dest), bytes=size, title=title)
-        )
-
-    if cover:
-        files.extend(
-            _download_cover(
-                media, card, directory, overwrite=overwrite, on_progress=on_progress
-            )
-        )
-    if icons:
-        files.extend(
-            _download_icons(
-                media, playable, directory, overwrite=overwrite, on_progress=on_progress
-            )
+            DownloadedFile(kind=job.kind, path=job.path, bytes=size, title=job.title)
         )
 
     card_path = directory / CARD_FILENAME
@@ -153,33 +216,17 @@ def download_playlist(
     )
 
 
-def _download_cover(
-    media: MediaGateway,
-    card: Card,
-    directory: Path,
-    *,
-    overwrite: bool,
-    on_progress: Progress,
-) -> list[DownloadedFile]:
+def _plan_cover(card: Card, directory: Path) -> list[tuple[str, _Job]]:
     url = card.metadata.cover.image_l if card.metadata and card.metadata.cover else None
     if not is_http_url(url):
         return []
     assert url is not None
     ext = Path(urlparse(url).path).suffix.lstrip(".") or "jpg"
     dest = directory / f"cover.{ext}"
-    on_progress(f"cover: {dest.name}")
-    size = _write(media, url, dest, overwrite=overwrite, on_progress=on_progress)
-    return [DownloadedFile(kind="cover", path=str(dest), bytes=size)]
+    return [(f"cover: {dest.name}", _Job(kind="cover", url=url, path=str(dest)))]
 
 
-def _download_icons(
-    media: MediaGateway,
-    playable: Card,
-    directory: Path,
-    *,
-    overwrite: bool,
-    on_progress: Progress,
-) -> list[DownloadedFile]:
+def _plan_icons(playable: Card, directory: Path) -> list[tuple[str, _Job]]:
     """Icons only download when the playable fetch resolved them to URLs;
     unresolved ``yoto:#`` references are silently left alone."""
     seen: dict[str, str] = {}  # url -> chapter key
@@ -193,11 +240,9 @@ def _download_icons(
                 if is_http_url(url) and url not in seen:
                     assert url is not None
                     seen[url] = chapter.key or str(len(seen) + 1)
-    files: list[DownloadedFile] = []
+    jobs: list[tuple[str, _Job]] = []
     for url, key in seen.items():
         ext = Path(urlparse(url).path).suffix.lstrip(".") or "png"
         dest = directory / ICONS_DIRNAME / f"{safe_filename(key)}.{ext}"
-        on_progress(f"icon: {dest.name}")
-        size = _write(media, url, dest, overwrite=overwrite, on_progress=on_progress)
-        files.append(DownloadedFile(kind="icon", path=str(dest), bytes=size))
-    return files
+        jobs.append((f"icon: {dest.name}", _Job(kind="icon", url=url, path=str(dest))))
+    return jobs

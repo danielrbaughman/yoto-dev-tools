@@ -3,6 +3,7 @@
 from collections.abc import Iterator
 from typing import IO, Any
 
+from yoto.application.ports import ChunkProgress
 from yoto.domain.content import Card
 from yoto.domain.device import Device, DeviceDetails
 from yoto.domain.errors import NotFoundError
@@ -62,13 +63,17 @@ class FakeMediaGateway:
         self.objects: dict[str, bytes] = {}
         self.get_calls: list[str] = []
 
-    def get_object(self, url: str, sink: IO[bytes]) -> int:
+    def get_object(
+        self, url: str, sink: IO[bytes], on_chunk: ChunkProgress | None = None
+    ) -> int:
         self.get_calls.append(url)
         try:
             data = self.objects[url]
         except KeyError:
             raise NotFoundError(f"No object at {url}") from None
         sink.write(data)
+        if on_chunk is not None:
+            on_chunk(len(data), len(data))
         return len(data)
 
     def request_upload_slot(self, *, sha256: str, filename: str) -> UploadSlot:
