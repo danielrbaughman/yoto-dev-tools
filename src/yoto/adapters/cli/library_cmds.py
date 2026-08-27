@@ -115,22 +115,6 @@ def images_list(
     emit(images, json_, presenters.show_family_images)
 
 
-@images_app.command("upload")
-@verbose()
-@handle_errors
-def images_upload(
-    file: Annotated[Path, typer.Argument(help="JPEG/PNG/GIF, max 8 MB.")],
-    json_: JsonOpt = False,
-) -> None:
-    """Upload a group image."""
-    image = library_uc.upload_family_image(get_services().family_images, file)
-    emit(
-        image,
-        json_,
-        lambda i: presenters.show_kv({"imageId": i.image_id, "url": i.url}),
-    )
-
-
 @images_app.command("get")
 @verbose()
 @handle_errors
@@ -146,3 +130,19 @@ def images_get(
         get_services().family_images, image_id, size=size
     )
     emit({"imageId": image_id, "url": url}, json_, lambda kv: presenters.show_kv(kv))
+
+
+@images_app.command("upload")
+@verbose()
+@handle_errors
+def images_upload(
+    file: Annotated[Path, typer.Argument(help="JPEG/PNG/GIF, max 8 MB.")],
+    json_: JsonOpt = False,
+) -> None:
+    """Upload a group image."""
+    image = library_uc.upload_family_image(get_services().family_images, file)
+    emit(
+        image,
+        json_,
+        lambda i: presenters.show_kv({"imageId": i.image_id, "url": i.url}),
+    )
